@@ -24,22 +24,20 @@ jobs:
         micromamba-version: 'latest'
         init-shell: bash
     
-    - name: Create build environment
+    - name: Create build environment and run build
       run: |
+        # Create and activate the build environment
         micromamba create -f .github/build-environment.yml -n build-env
-        micromamba activate build-env
+        # Activate the environment and run the build script
+        micromamba run -n build-env bash -c "
+          if [ -f build.sh ]; then
+            chmod +x build.sh
+            ./build.sh
+          else
+            echo 'No build.sh found, skipping build'
+          fi
+        "
       shell: bash -l {0}
-    
-    - name: Build environment
-      run: |
-        # Run the build script
-        if [ -f build.sh ]; then
-          chmod +x build.sh
-          ./build.sh
-        else
-          echo "No build.sh found, skipping build"
-        fi
-      shell: bash -l {0}  # Use login shell to get micromamba in PATH
     
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
