@@ -1,0 +1,29 @@
+# Build artifacts
+packages/
+*.tar.gz
+empack_env_meta.json
+pyjs_runtime_browser.js
+pyjs_runtime_browser.wasm
+
+# Environment
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE
+.idea/
+.vscode/
+.DS_Store
+
+# Node
+node_modules/
+
+# Logs
+*.log
+
+# Misc
+*.swp
+*.swo

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Obspy Pyjs Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        #output {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            white-space: pre-wrap;
+        }
+        #plot {
+            margin-top: 20px;
+            width: 100%;
+            height: 400px;
+            border: 1px solid #ccc;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Obspy Pyjs Demo</h1>
+    <p>This demo shows how to use Obspy through Pyjs to fetch and plot seismic data from the French CURIE station.</p>
+    
+    <div id="status" style="margin: 10px 0; padding: 10px; background-color: #e7f3ff; border-left: 4px solid #2196F3;">
+        <strong>Status:</strong> <span id="statusText">Ready to fetch data</span>
+    </div>
+    
+    <button id="fetchData">Fetch CURIE Station Data</button>
+    <div id="output">Click the button to fetch and plot seismic data from the French CURIE station.</div>
+    <div id="plot"></div>
+
+    <script src="pyjs_runtime_browser.js"></script>
+    <script>
+        async function main() {
+            let locateFile = function(filename) {
+                if(filename.endsWith('pyjs_runtime_browser.wasm')) {
+                    return './pyjs_runtime_browser.wasm';
+                }
+                return filename;
+            };
+            
+            let pyjs = await createModule({locateFile: locateFile});
+            console.log("Pyjs initialized");
+            
+            document.getElementById('fetchData').addEventListener('click', async function() {
+                const button = document.getElementById('fetchData');
+                const output = document.getElementById('output');
+                
+                // Disable button during processing
+                button.disabled = true;
+                button.textContent = 'Loading...';
+                
+                try {
+                    document.getElementById('statusText').textContent = 'Initializing Python environment...';
+                    output.textContent = 'This may take a moment on first load as the WebAssembly environment is initialized.';
+                    
+                    // Load the empack environment
+                    await pyjs.bootstrap_from_empack_packed_environment(
+                        "./empack_env_meta.json",
+                        "./packages/"
+                    );
+                    
+                    document.getElementById('statusText').textContent = 'Environment loaded! Fetching data...';
+                    output.textContent = 'Connecting to IRIS FDSN service to fetch seismic data from CURIE station...';
+                    
+                    // Python code to fetch data from CURIE station
+                    const pythonCode = `
+import pyodide_http
+pyodide_http.patch_all()
+
+import obspy
+from obspy.clients.fdsn import Client
+from obspy import UTCDateTime
+from datetime import timedelta
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
+import matplotlib.pyplot as plt
+import io
+import base64
+import warnings
+
+# Suppress warnings
+warnings.filterwarnings('ignore')
+
+# Set up client - use EPOSFR which should work better
+client = Client("EPOSFR", _discover_services=False)
+
+# Calculate time window using UTCDateTime
+now = UTCDateTime()
+now_minus_three_hours = now - 3 * 60 * 60  # 3 hours in seconds
+
+# Get waveforms
+st = client.get_waveforms(
+    network="FR",
+    station="CURIE",
+    location="*",
+    channel="*",
+    starttime=now_minus_three_hours,
+    endtime=now,
+    attach_response=True
+)
+
+# Select one channel and plot
+st_hhz = st.select(channel="HHZ")
+
+# Create plot
+fig = plt.figure(figsize=(20, 6))
+st_hhz.plot(fig=fig)
+
+# Save plot to bytes
+buf = io.BytesIO()
+plt.savefig(buf, format='png')
+buf.seek(0)
+plot_data = base64.b64encode(buf.read()).decode('utf-8')
+
+# Return the values as a dictionary for sync execution
+# Use keys that are valid JavaScript identifiers
+{
+    'len_st': len(st),
+    'len_plot_data': len(plot_data),
+    'plot_data': plot_data
+}
+`;
+
+                    // Execute the Python code using sync eval since we don't need async
+                    const result = pyjs.exec_eval(pythonCode);
+                    
+                    // Debug: log the result to see what we got
+                    console.log("Python result:", result);
+                    console.log("Result type:", typeof result);
+                    
+                    // Display results
+                    document.getElementById('statusText').textContent = 'Data fetched and plotted successfully!';
+                    output.textContent = `Successfully fetched data from CURIE station!\n\n`;
+                    
+                    // Check if result is defined and has the expected properties
+                    // Note: pyjs returns a Proxy object, so we need to use .get() method
+                    if (result && typeof result === 'object' && typeof result.get === 'function') {
+                        try {
+                            // Use .get() method to access properties on pyjs Proxy objects
+                            const len_st = result.get('len_st');
+                            const len_plot_data = result.get('len_plot_data');
+                            const plotData = result.get('plot_data');
+                            
+                            output.textContent += `Number of traces: ${len_st || 'N/A'}\n`;
+                            output.textContent += `Plot data size: ${len_plot_data || 'N/A'} bytes\n\n`;
+                            
+                            console.log("Plot data:", plotData ? plotData.substring(0, 50) + "..." : "undefined");
+                            
+                            if (plotData) {
+                                const plotElement = document.getElementById('plot');
+                                plotElement.innerHTML = `<img src="data:image/png;base64,${plotData}" alt="Seismic data plot" style="width: 100%;">`;
+                            } else {
+                                output.textContent += 'ERROR: No plot data received\n';
+                            }
+                        } catch (e) {
+                            console.error("Error accessing result properties:", e);
+                            output.textContent += `ERROR: Failed to access result properties: ${e.message}\n`;
+                        }
+                    } else {
+                        output.textContent += 'ERROR: Invalid result format\n';
+                        output.textContent += `Result type: ${typeof result}\n`;
+                        output.textContent += `Has get method: ${typeof result?.get === 'function'}\n`;
+                    }
+                    
+                    // Re-enable button
+                    button.disabled = false;
+                    button.textContent = 'Fetch CURIE Station Data';
+                    
+                } catch (error) {
+                    console.error("Error:", error);
+                    document.getElementById('statusText').textContent = 'Error occurred';
+                    let errorMessage = `Error: ${error.message}`;
+                    if (error.message.includes('404')) {
+                        errorMessage += '\n\nPlease make sure you have run ./build.sh to create the environment files.';
+                    }
+                    output.textContent = errorMessage;
+                    
+                    // Re-enable button
+                    button.disabled = false;
+                    button.textContent = 'Fetch CURIE Station Data';
+                }
+            });
+        }
+
+        main();
+    </script>
+</body>
+</html>
