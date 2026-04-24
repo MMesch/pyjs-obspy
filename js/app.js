@@ -21,12 +21,11 @@ document.addEventListener('pyready', () => {
 
 // Fetch data and display results
 async function fetchData() {
-    const network      = document.getElementById('network').value;
-    const station      = document.getElementById('station').value;
-    const location     = document.getElementById('location').value;
-    const channel      = document.getElementById('channel').value;
-    const timeWindow   = parseFloat(document.getElementById('timeWindow').value);
-    const fdsnService  = document.getElementById('fdsnService').value;
+    const network     = document.getElementById('network').value;
+    const station     = document.getElementById('station').value;
+    const location    = document.getElementById('location').value;
+    const channel     = document.getElementById('channel').value;
+    const fdsnService = document.getElementById('fdsnService').value;
     const attachResp   = document.getElementById('attachResponse').checked;
     const removeResp   = document.getElementById('removeResponse').checked;
 
@@ -42,8 +41,9 @@ async function fetchData() {
     try {
         output.textContent = 'Fetching data from ' + fdsnService + '...\n';
 
-        const endTime   = new Date();
-        const startTime = new Date(endTime.getTime() - timeWindow * 3600 * 1000);
+        const startTime = new Date(document.getElementById('startTime').value);
+        const duration  = parseFloat(document.getElementById('duration').value);
+        const endTime   = new Date(startTime.getTime() + duration * 60 * 1000);
 
         const call = [
             'await fetch_data(',
@@ -112,6 +112,15 @@ async function fetchData() {
         fetchText.textContent = 'Fetch Data';
     }
 }
+
+// Default start time: 1 hour ago, rounded to the minute
+(function () {
+    const d = new Date(Date.now() - 60 * 60 * 1000);
+    d.setSeconds(0, 0);
+    // datetime-local expects "YYYY-MM-DDTHH:MM"
+    const iso = d.toISOString().slice(0, 16);
+    document.getElementById('startTime').value = iso;
+})();
 
 document.getElementById('fetchData').addEventListener('click', fetchData);
 

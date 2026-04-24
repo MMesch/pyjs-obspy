@@ -49,11 +49,15 @@
                 <div>
                     <div class="form-group">
                         <label for="channel">Channel Code</label>
-                        <input type="text" id="channel" class="form-control" value="HH*" placeholder="e.g., HHZ, BH*, *HZ">
+                        <input type="text" id="channel" class="form-control" value="HHZ" placeholder="e.g., HHZ, BH*, *HZ">
                     </div>
                     <div class="form-group">
-                        <label for="timeWindow">Time Window (hours)</label>
-                        <input type="number" id="timeWindow" class="form-control" value="3" min="0.1" max="24" step="0.1">
+                        <label for="startTime">Start Time (UTC)</label>
+                        <input type="datetime-local" id="startTime" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="duration">Duration (minutes)</label>
+                        <input type="number" id="duration" class="form-control" value="60" min="1" max="1440" step="1">
                     </div>
                     <div class="form-group">
                         <label for="fdsnService">FDSN Service</label>
