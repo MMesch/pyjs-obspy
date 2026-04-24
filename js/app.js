@@ -85,6 +85,16 @@ async function fetchData() {
             procEl.innerHTML = '';
         }
 
+        const specEl = document.getElementById('spectrogramPlot');
+        if (result.spectrograms && result.spectrograms.length > 0) {
+            specEl.innerHTML = result.spectrograms.map(s =>
+                '<h4>Spectrogram — ' + s.seed_id + '</h4>'
+                + '<img src="data:image/png;base64,' + s.plot + '" alt="Spectrogram ' + s.seed_id + '">'
+            ).join('');
+        } else {
+            specEl.innerHTML = '';
+        }
+
         const respPlotEl = document.getElementById('responsePlot');
         if (result.response_plot) {
             respPlotEl.innerHTML = '<h4>Instrument Response (' + result.response_channel + ')</h4>'

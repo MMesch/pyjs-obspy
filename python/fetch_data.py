@@ -73,6 +73,7 @@ async def fetch_data(fdsn_service, network, station, location, channel,
         result['raw_plot'] = base64.b64encode(buf.read()).decode('utf-8')
         plt.close(fig)
 
+    st_proc = None
     if remove_response and len(st) > 0 and result['has_response']:
         try:
             st_proc = st.copy()
@@ -87,8 +88,9 @@ async def fetch_data(fdsn_service, network, station, location, channel,
             plt.close(fig)
         except Exception as e:
             result['response_removal_error'] = str(e)
+            st_proc = None
 
-    # Plot instrument response for the first channel that has one
+    # Instrument response plot for the first channel that has one
     result['response_plot'] = None
     traces_with_response = [tr for tr in st if hasattr(tr.stats, 'response')]
     if traces_with_response:
@@ -103,6 +105,29 @@ async def fetch_data(fdsn_service, network, station, location, channel,
             plt.close(fig)
         except Exception as e:
             result['response_plot_error'] = str(e)
+
+    # Spectrograms — use processed stream if available, else raw
+    result['spectrograms'] = []
+    st_for_spec = (st_proc if st_proc is not None else st).copy()
+    # Decimate to ≤25 Hz so the spectrogram is tractable in WASM
+    for tr in st_for_spec:
+        factor = int(tr.stats.sampling_rate / 25)
+        if factor > 1:
+            tr.decimate(factor, no_filter=False)
+    try:
+        for tr in st_for_spec:
+            tr.spectrogram(show=False, title=tr.id)
+            fig = plt.gcf()
+            buf = io.BytesIO()
+            fig.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+            buf.seek(0)
+            result['spectrograms'].append({
+                'seed_id': tr.id,
+                'plot': base64.b64encode(buf.read()).decode('utf-8'),
+            })
+            plt.close(fig)
+    except Exception as e:
+        result['spectrogram_error'] = str(e)
 
     current_stream = st
     return json.dumps(result, cls=_NumpyEncoder)

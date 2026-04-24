@@ -19,14 +19,14 @@
         <div class="loading-status" id="loadingStatus">Initializing Python environment...</div>
 
         <div class="tabs">
-            <button class="tab active" data-tab="data">Data Fetching</button>
-            <button class="tab" data-tab="beachball">Beachball</button>
+            <button class="tab active" data-tab="beachball">Beachball</button>
             <button class="tab" data-tab="taup">TauP</button>
+            <button class="tab" data-tab="data">Data Processing</button>
             <button class="tab" data-tab="about">About</button>
         </div>
 
         <!-- Data Fetching Tab -->
-        <div id="data" class="tab-content active">
+        <div id="data" class="tab-content">
             <div class="status-box info">
                 <span><strong>Data Fetching:</strong> Fetch seismic waveforms from FDSN web services and visualize them.</span>
             </div>
@@ -88,13 +88,14 @@
                 <div class="plot-container">
                     <div id="rawPlot"></div>
                     <div id="processedPlot"></div>
+                    <div id="spectrogramPlot"></div>
                     <div id="responsePlot"></div>
                 </div>
             </div>
         </div>
 
         <!-- Beachball Tab -->
-        <div id="beachball" class="tab-content">
+        <div id="beachball" class="tab-content active">
             <div class="status-box info">
                 <span><strong>Beachball:</strong> Plot focal mechanism beach balls from strike/dip/rake or a full moment tensor.</span>
             </div>
