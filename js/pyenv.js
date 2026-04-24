@@ -67,9 +67,20 @@ const PyEnv = (() => {
         return _pyjs.exec(code);
     }
 
-    async function asyncEval(code) {
+    async function asyncEval(code, label) {
         if (!_ready) throw new Error('Python environment not ready');
-        return _pyjs.async_exec_eval(code);
+        const bar = document.querySelector('.loading-bar-container');
+        if (bar) bar.style.display = '';
+        _setLoadingBar(100);
+        _setLoadingStatus(label || 'Running Python...');
+        try {
+            return await _pyjs.async_exec_eval(code);
+        } finally {
+            _setLoadingStatus('Ready');
+            setTimeout(() => {
+                if (bar) bar.style.display = 'none';
+            }, 800);
+        }
     }
 
     return { initialize, exec, asyncEval, get ready() { return _ready; } };

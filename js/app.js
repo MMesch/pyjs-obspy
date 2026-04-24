@@ -59,7 +59,7 @@ async function fetchData() {
             ')',
         ].join('');
 
-        const result = JSON.parse(await PyEnv.asyncEval(call));
+        const result = JSON.parse(await PyEnv.asyncEval(call, 'Fetching seismic data...'));
 
         const numTraces       = result.num_traces;
         const hasResponse     = result.has_response;
@@ -166,7 +166,7 @@ async function plotBeachball() {
 
         const call = 'await plot_beachball("' + inputType + '", '
             + JSON.stringify(values) + ', "' + color + '")';
-        const result = JSON.parse(await PyEnv.asyncEval(call));
+        const result = JSON.parse(await PyEnv.asyncEval(call, 'Plotting beachball...'));
 
         if (result.error) {
             output.style.display = '';
@@ -222,7 +222,7 @@ async function computeTaup() {
         const call = 'await plot_taup("' + plotType + '", ' + depth + ', '
             + JSON.stringify(phases) + ', ' + distArg + ', "' + model + '")';
 
-        const result = JSON.parse(await PyEnv.asyncEval(call));
+        const result = JSON.parse(await PyEnv.asyncEval(call, 'Computing TauP...'));
 
         if (result.error) {
             output.style.display = '';
