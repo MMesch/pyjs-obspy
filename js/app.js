@@ -105,3 +105,123 @@ async function fetchData() {
 
 document.getElementById('fetchData').addEventListener('click', fetchData);
 
+// ── Beachball ────────────────────────────────────────────────────────────────
+
+document.querySelectorAll('input[name="bbType"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+        const focal = document.getElementById('bbFocalInputs');
+        const mt    = document.getElementById('bbMtInputs');
+        if (radio.value === 'focal') { focal.style.display = ''; mt.style.display = 'none'; }
+        else                         { focal.style.display = 'none'; mt.style.display = ''; }
+    });
+});
+
+async function plotBeachball() {
+    const btn     = document.getElementById('plotBeachball');
+    const spinner = document.getElementById('bbSpinner');
+    const text    = document.getElementById('bbText');
+    const output  = document.getElementById('bbOutput');
+    const plotEl  = document.getElementById('bbPlot');
+
+    btn.disabled = true;
+    spinner.style.display = 'inline-block';
+    text.textContent = 'Computing...';
+    output.style.display = 'none';
+    plotEl.innerHTML = '';
+
+    try {
+        const inputType = document.querySelector('input[name="bbType"]:checked').value;
+        const color     = document.getElementById('bbColor').value;
+        let values;
+
+        if (inputType === 'focal') {
+            values = [
+                parseFloat(document.getElementById('bbStrike').value),
+                parseFloat(document.getElementById('bbDip').value),
+                parseFloat(document.getElementById('bbRake').value),
+            ];
+        } else {
+            values = document.getElementById('bbMt').value
+                .trim().split(/\s+/).map(Number);
+        }
+
+        const call = 'await plot_beachball("' + inputType + '", '
+            + JSON.stringify(values) + ', "' + color + '")';
+        const result = JSON.parse(await PyEnv.asyncEval(call));
+
+        if (result.error) {
+            output.style.display = '';
+            output.textContent = 'Error: ' + result.error;
+            return;
+        }
+        plotEl.innerHTML = '<img src="data:image/png;base64,' + result.plot + '" alt="Beachball">';
+
+    } catch (err) {
+        console.error('Beachball error:', err);
+        output.style.display = '';
+        output.textContent = 'Error: ' + err.message;
+    } finally {
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        text.textContent = 'Plot Beachball';
+    }
+}
+
+document.getElementById('plotBeachball').addEventListener('click', plotBeachball);
+
+// ── TauP ─────────────────────────────────────────────────────────────────────
+
+document.getElementById('taupPlotType').addEventListener('change', function () {
+    const distGroup = document.getElementById('taupDistGroup');
+    distGroup.style.display = this.value === 'travel_times' ? 'none' : '';
+});
+// hide distance initially only if travel_times is default
+document.getElementById('taupDistGroup').style.display = 'none';
+
+async function computeTaup() {
+    const btn      = document.getElementById('computeTaup');
+    const spinner  = document.getElementById('taupSpinner');
+    const text     = document.getElementById('taupText');
+    const output   = document.getElementById('taupOutput');
+    const plotEl   = document.getElementById('taupPlot');
+
+    btn.disabled = true;
+    spinner.style.display = 'inline-block';
+    text.textContent = 'Computing...';
+    output.style.display = 'none';
+    plotEl.innerHTML = '';
+
+    try {
+        const plotType  = document.getElementById('taupPlotType').value;
+        const depth     = parseFloat(document.getElementById('taupDepth').value);
+        const dist      = parseFloat(document.getElementById('taupDist').value);
+        const model     = document.getElementById('taupModel').value;
+        const phases    = document.getElementById('taupPhases').value
+            .split(',').map(p => p.trim()).filter(Boolean);
+
+        const distArg = plotType === 'travel_times' ? 'None' : String(dist);
+        const call = 'await plot_taup("' + plotType + '", ' + depth + ', '
+            + JSON.stringify(phases) + ', ' + distArg + ', "' + model + '")';
+
+        const result = JSON.parse(await PyEnv.asyncEval(call));
+
+        if (result.error) {
+            output.style.display = '';
+            output.textContent = 'Error: ' + result.error;
+            return;
+        }
+        plotEl.innerHTML = '<img src="data:image/png;base64,' + result.plot + '" alt="TauP plot">';
+
+    } catch (err) {
+        console.error('TauP error:', err);
+        output.style.display = '';
+        output.textContent = 'Error: ' + err.message;
+    } finally {
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        text.textContent = 'Compute';
+    }
+}
+
+document.getElementById('computeTaup').addEventListener('click', computeTaup);
+

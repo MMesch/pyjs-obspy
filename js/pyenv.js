@@ -43,6 +43,8 @@ const PyEnv = (() => {
 
             _setLoadingStatus('Loading Python modules...');
             _pyjs.exec(await _loadFile('./python/fetch_data.py'));
+            _pyjs.exec(await _loadFile('./python/beachball.py'));
+            _pyjs.exec(await _loadFile('./python/taup.py'));
 
             _setLoadingBar(100);
             _setLoadingStatus('Environment ready!');
