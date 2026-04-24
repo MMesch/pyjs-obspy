@@ -88,5 +88,21 @@ async def fetch_data(fdsn_service, network, station, location, channel,
         except Exception as e:
             result['response_removal_error'] = str(e)
 
+    # Plot instrument response for the first channel that has one
+    result['response_plot'] = None
+    traces_with_response = [tr for tr in st if hasattr(tr.stats, 'response')]
+    if traces_with_response:
+        try:
+            tr = traces_with_response[0]
+            fig = tr.stats.response.plot(min_freq=0.001, output='VEL', show=False)
+            buf = io.BytesIO()
+            fig.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+            buf.seek(0)
+            result['response_plot'] = base64.b64encode(buf.read()).decode('utf-8')
+            result['response_channel'] = tr.id
+            plt.close(fig)
+        except Exception as e:
+            result['response_plot_error'] = str(e)
+
     current_stream = st
     return json.dumps(result, cls=_NumpyEncoder)

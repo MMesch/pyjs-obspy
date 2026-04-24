@@ -85,6 +85,14 @@ async function fetchData() {
             procEl.innerHTML = '';
         }
 
+        const respPlotEl = document.getElementById('responsePlot');
+        if (result.response_plot) {
+            respPlotEl.innerHTML = '<h4>Instrument Response (' + result.response_channel + ')</h4>'
+                + '<img src="data:image/png;base64,' + result.response_plot + '" alt="Instrument response">';
+        } else {
+            respPlotEl.innerHTML = '';
+        }
+
     } catch (err) {
         console.error('Fetch error:', err);
         output.textContent += 'Error: ' + err.message + '\n';
@@ -96,3 +104,4 @@ async function fetchData() {
 }
 
 document.getElementById('fetchData').addEventListener('click', fetchData);
+

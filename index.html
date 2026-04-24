@@ -20,9 +20,8 @@
 
         <div class="tabs">
             <button class="tab active" data-tab="data">Data Fetching</button>
-            <button class="tab" data-tab="response">Instrument Response</button>
-            <button class="tab" data-tab="processing">Signal Processing</button>
-            <button class="tab" data-tab="spectral">Spectral Analysis</button>
+            <button class="tab" data-tab="beachball">Beachball</button>
+            <button class="tab" data-tab="taup">TauP</button>
             <button class="tab" data-tab="about">About</button>
         </div>
 
@@ -89,43 +88,30 @@
                 <div class="plot-container">
                     <div id="rawPlot"></div>
                     <div id="processedPlot"></div>
+                    <div id="responsePlot"></div>
                 </div>
             </div>
         </div>
 
-        <!-- Instrument Response Tab -->
-        <div id="response" class="tab-content">
+        <!-- Beachball Tab -->
+        <div id="beachball" class="tab-content">
             <div class="status-box info">
-                <span><strong>Instrument Response:</strong> Analyze and visualize instrument response characteristics.</span>
+                <span><strong>Beachball:</strong> Plot focal mechanism beach balls from strike/dip/rake or a moment tensor.</span>
             </div>
             <div class="output-container">
-                <h3>Instrument Response Analysis</h3>
-                <div class="output-content" id="responseOutput">
-                    Select a station and fetch data in the Data Fetching tab to analyze its instrument response.
-                </div>
-                <div id="responsePlot" class="plot-container"></div>
+                <h3>Coming in next step</h3>
+                <div class="output-content" id="beachballOutput">Beachball tab — implementation coming next.</div>
             </div>
         </div>
 
-        <!-- Signal Processing Tab -->
-        <div id="processing" class="tab-content">
+        <!-- TauP Tab -->
+        <div id="taup" class="tab-content">
             <div class="status-box info">
-                <span><strong>Signal Processing:</strong> Apply various processing techniques to seismic data.</span>
+                <span><strong>TauP:</strong> Compute seismic travel times and ray paths.</span>
             </div>
             <div class="output-container">
-                <h3>Signal Processing Tools</h3>
-                <div class="output-content" id="processingOutput">Coming soon: filtering, detrending, tapering, and more!</div>
-            </div>
-        </div>
-
-        <!-- Spectral Analysis Tab -->
-        <div id="spectral" class="tab-content">
-            <div class="status-box info">
-                <span><strong>Spectral Analysis:</strong> Perform frequency domain analysis of seismic signals.</span>
-            </div>
-            <div class="output-container">
-                <h3>Spectral Analysis</h3>
-                <div class="output-content" id="spectralOutput">Coming soon: FFT, spectrograms, and power spectral density!</div>
+                <h3>Coming in next step</h3>
+                <div class="output-content" id="taupOutput">TauP tab — implementation coming next.</div>
             </div>
         </div>
 
