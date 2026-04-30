@@ -118,14 +118,8 @@ async function fetchData() {
     }
 }
 
-// Default start time: 1 hour ago, rounded to the minute
-(function () {
-    const d = new Date(Date.now() - 60 * 60 * 1000);
-    d.setSeconds(0, 0);
-    // datetime-local expects "YYYY-MM-DDTHH:MM"
-    const iso = d.toISOString().slice(0, 16);
-    document.getElementById('startTime').value = iso;
-})();
+// Default: Mw 7.4 earthquake, GEOFON GE.STU, 2026-04-20 07:52 UTC
+document.getElementById('startTime').value = '2026-04-20T07:52';
 
 document.getElementById('fetchData').addEventListener('click', fetchData);
 

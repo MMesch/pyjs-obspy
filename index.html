@@ -36,11 +36,11 @@
                 <div>
                     <div class="form-group">
                         <label for="network">Network Code</label>
-                        <input type="text" id="network" class="form-control" value="FR" placeholder="e.g., FR, IU, GE">
+                        <input type="text" id="network" class="form-control" value="GE" placeholder="e.g., FR, IU, GE">
                     </div>
                     <div class="form-group">
                         <label for="station">Station Code</label>
-                        <input type="text" id="station" class="form-control" value="CURIE" placeholder="e.g., CURIE, ANMO, BFO">
+                        <input type="text" id="station" class="form-control" value="STU" placeholder="e.g., CURIE, ANMO, BFO">
                     </div>
                     <div class="form-group">
                         <label for="location">Location Code</label>
@@ -50,7 +50,7 @@
                 <div>
                     <div class="form-group">
                         <label for="channel">Channel Code</label>
-                        <input type="text" id="channel" class="form-control" value="HHZ" placeholder="e.g., HHZ, BH*, *HZ">
+                        <input type="text" id="channel" class="form-control" value="LHZ" placeholder="e.g., LHZ, HHZ, BH*">
                     </div>
                     <div class="form-group">
                         <label for="startTime">Start Time (UTC)</label>
@@ -58,13 +58,13 @@
                     </div>
                     <div class="form-group">
                         <label for="duration">Duration (minutes)</label>
-                        <input type="number" id="duration" class="form-control" value="60" min="1" max="1440" step="1">
+                        <input type="number" id="duration" class="form-control" value="180" min="1" max="1440" step="1">
                     </div>
                     <div class="form-group">
                         <label for="fdsnService">FDSN Service</label>
                         <select id="fdsnService" class="form-control">
-                            <option value="EPOSFR">EPOS France</option>
                             <option value="GEOFON">GEOFON</option>
+                            <option value="EPOSFR">EPOS France</option>
                             <option value="EARTHSCOPE">EarthScope</option>
                             <option value="ETH">ETH Zurich</option>
                             <option value="ORFEUS">ORFEUS</option>
@@ -78,7 +78,7 @@
                 <label for="attachResponse">Attach instrument response metadata</label>
             </div>
             <div class="checkbox-group">
-                <input type="checkbox" id="removeResponse" checked>
+                <input type="checkbox" id="removeResponse">
                 <label for="removeResponse">Remove instrument response after fetching</label>
             </div>
 
