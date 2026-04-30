@@ -26,81 +26,86 @@ async function fetchData() {
     const location    = document.getElementById('location').value;
     const channel     = document.getElementById('channel').value;
     const fdsnService = document.getElementById('fdsnService').value;
-    const attachResp   = document.getElementById('attachResponse').checked;
-    const removeResp   = document.getElementById('removeResponse').checked;
+    const attachResp  = document.getElementById('attachResponse').checked;
+    const removeResp  = document.getElementById('removeResponse').checked;
 
     const output      = document.getElementById('output');
     const fetchBtn    = document.getElementById('fetchData');
     const fetchSpinner = document.getElementById('fetchSpinner');
     const fetchText   = document.getElementById('fetchText');
 
+    const rawEl    = document.getElementById('rawPlot');
+    const procEl   = document.getElementById('processedPlot');
+    const specEl   = document.getElementById('spectrogramPlot');
+    const respPlotEl = document.getElementById('responsePlot');
+
     fetchBtn.disabled = true;
     fetchSpinner.style.display = 'inline-block';
     fetchText.textContent = 'Loading...';
+    output.textContent = '';
+    rawEl.innerHTML = procEl.innerHTML = specEl.innerHTML = respPlotEl.innerHTML = '';
+
+    // datetime-local value is local time; append Z to treat input as UTC
+    const startUTC  = document.getElementById('startTime').value + ':00Z';
+    const duration  = parseFloat(document.getElementById('duration').value);
+    const endUTC    = new Date(new Date(startUTC).getTime() + duration * 60 * 1000).toISOString();
 
     try {
-        output.textContent = 'Fetching data from ' + fdsnService + '...\n';
+        // ── Step 1: fetch raw waveforms ────────────────────────────────────
+        output.textContent += 'Connecting to ' + fdsnService + '...\n';
+        const rawCall = 'await fetch_raw('
+            + '"' + fdsnService + '","' + network + '","' + station + '",'
+            + '"' + location + '","' + channel + '",'
+            + '"' + startUTC + '","' + endUTC + '",'
+            + 'attach_response=' + (attachResp ? 'True' : 'False') + ')';
+        const raw = JSON.parse(await PyEnv.asyncEval(rawCall,
+            'Fetching waveforms from ' + fdsnService + '…'));
 
-        const startTime = new Date(document.getElementById('startTime').value);
-        const duration  = parseFloat(document.getElementById('duration').value);
-        const endTime   = new Date(startTime.getTime() + duration * 60 * 1000);
+        output.textContent += 'Fetched ' + raw.num_traces + ' trace(s)';
+        if (raw.has_response) output.textContent += ' · response metadata attached';
+        output.textContent += '\n';
 
-        const call = [
-            'await fetch_data(',
-            '"' + fdsnService + '", ',
-            '"' + network + '", ',
-            '"' + station + '", ',
-            '"' + location + '", ',
-            '"' + channel + '", ',
-            '"' + startTime.toISOString() + '", ',
-            '"' + endTime.toISOString() + '", ',
-            'attach_response=' + (attachResp ? 'True' : 'False') + ', ',
-            'remove_response=' + (removeResp ? 'True' : 'False'),
-            ')',
-        ].join('');
-
-        const result = JSON.parse(await PyEnv.asyncEval(call, 'Fetching seismic data...'));
-
-        const numTraces       = result.num_traces;
-        const hasResponse     = result.has_response;
-        const responseRemoved = result.response_removed || false;
-        const rawPlot         = result.raw_plot;
-        const processedPlot   = result.processed_plot;
-
-        output.textContent += 'Fetched ' + numTraces + ' trace(s)\n';
-        output.textContent += 'Response attached: ' + (hasResponse ? 'Yes' : 'No') + '\n';
-        if (responseRemoved) output.textContent += 'Instrument response removed\n';
-
-        const rawEl = document.getElementById('rawPlot');
-        rawEl.innerHTML = rawPlot
-            ? '<h4>Raw Data</h4><img src="data:image/png;base64,' + rawPlot + '" alt="Raw seismic data">'
-            : '<h4>Raw Data</h4><p>No plot available</p>';
-
-        const procEl = document.getElementById('processedPlot');
-        if (processedPlot) {
-            procEl.innerHTML = '<h4>Processed Data (Response Removed)</h4><img src="data:image/png;base64,' + processedPlot + '" alt="Processed seismic data">';
-        } else if (removeResp) {
-            procEl.innerHTML = '<h4>Processed Data</h4><p>Response removal failed or no response available</p>';
-        } else {
-            procEl.innerHTML = '';
+        if (raw.raw_plot) {
+            rawEl.innerHTML = '<h4>Raw Data</h4>'
+                + '<img src="data:image/png;base64,' + raw.raw_plot + '" alt="Raw seismic data">';
         }
 
-        const specEl = document.getElementById('spectrogramPlot');
-        if (result.spectrograms && result.spectrograms.length > 0) {
-            specEl.innerHTML = result.spectrograms.map(s =>
+        // ── Step 2: remove instrument response ────────────────────────────
+        if (removeResp && raw.has_response) {
+            output.textContent += 'Removing instrument response...\n';
+            const proc = JSON.parse(await PyEnv.asyncEval(
+                'await process_stream()', 'Removing instrument response…'));
+            if (proc.error) {
+                output.textContent += 'Response removal failed: ' + proc.error + '\n';
+            } else {
+                output.textContent += 'Response removed (output: velocity)\n';
+                procEl.innerHTML = '<h4>Processed Data (response removed)</h4>'
+                    + '<img src="data:image/png;base64,' + proc.processed_plot + '" alt="Processed">';
+            }
+        }
+
+        // ── Step 3: spectrograms ───────────────────────────────────────────
+        output.textContent += 'Computing spectrograms...\n';
+        const spec = JSON.parse(await PyEnv.asyncEval(
+            'await compute_spectrograms()', 'Computing spectrograms…'));
+        if (spec.spectrograms && spec.spectrograms.length > 0) {
+            specEl.innerHTML = spec.spectrograms.map(s =>
                 '<h4>Spectrogram — ' + s.seed_id + '</h4>'
                 + '<img src="data:image/png;base64,' + s.plot + '" alt="Spectrogram ' + s.seed_id + '">'
             ).join('');
-        } else {
-            specEl.innerHTML = '';
+            output.textContent += 'Spectrograms done\n';
         }
 
-        const respPlotEl = document.getElementById('responsePlot');
-        if (result.response_plot) {
-            respPlotEl.innerHTML = '<h4>Instrument Response (' + result.response_channel + ')</h4>'
-                + '<img src="data:image/png;base64,' + result.response_plot + '" alt="Instrument response">';
-        } else {
-            respPlotEl.innerHTML = '';
+        // ── Step 4: instrument response plot ──────────────────────────────
+        if (attachResp && raw.has_response) {
+            output.textContent += 'Plotting instrument response...\n';
+            const resp = JSON.parse(await PyEnv.asyncEval(
+                'await compute_response_plot()', 'Plotting instrument response…'));
+            if (resp.response_plot) {
+                respPlotEl.innerHTML = '<h4>Instrument Response (' + resp.response_channel + ')</h4>'
+                    + '<img src="data:image/png;base64,' + resp.response_plot + '" alt="Instrument response">';
+                output.textContent += 'Done\n';
+            }
         }
 
     } catch (err) {

@@ -16,8 +16,10 @@ const PyEnv = (() => {
         if (el) el.classList.toggle('ready', !!done);
     }
 
+    const _cacheBust = '?v=' + Date.now();
+
     async function _loadFile(path) {
-        const resp = await fetch(path);
+        const resp = await fetch(path + _cacheBust);
         if (!resp.ok) throw new Error('Failed to load ' + path + ' (' + resp.status + ')');
         return resp.text();
     }
