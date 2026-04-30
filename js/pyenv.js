@@ -1,15 +1,19 @@
 const PyEnv = (() => {
     let _pyjs = null;
     let _ready = false;
+    let _initStart = null;
+    let _initElapsed = null;
 
     function _setLoadingBar(pct) {
         const el = document.getElementById('loadingBar');
         if (el) el.style.width = pct + '%';
     }
 
-    function _setLoadingStatus(msg) {
+    function _setLoadingStatus(msg, done) {
         const el = document.getElementById('loadingStatus');
-        if (el) el.textContent = msg;
+        const txt = document.getElementById('loadingText');
+        if (txt) txt.textContent = msg;
+        if (el) el.classList.toggle('ready', !!done);
     }
 
     async function _loadFile(path) {
@@ -19,6 +23,7 @@ const PyEnv = (() => {
     }
 
     async function initialize() {
+        _initStart = Date.now();
         try {
             _setLoadingStatus('Initializing Python runtime...');
             _setLoadingBar(10);
@@ -47,14 +52,10 @@ const PyEnv = (() => {
             _pyjs.exec(await _loadFile('./python/taup.py'));
 
             _setLoadingBar(100);
-            _setLoadingStatus('Environment ready!');
+            _initElapsed = ((Date.now() - _initStart) / 1000).toFixed(1);
+            _setLoadingStatus('Environment ready — loaded in ' + _initElapsed + ' s', true);
             _ready = true;
-            document.dispatchEvent(new Event('pyready'));
-
-            setTimeout(() => {
-                const bar = document.querySelector('.loading-bar-container');
-                if (bar) bar.style.display = 'none';
-            }, 2000);
+            setTimeout(() => document.dispatchEvent(new Event('pyready')), 450);
 
         } catch (err) {
             console.error('PyEnv init error:', err);
@@ -69,17 +70,14 @@ const PyEnv = (() => {
 
     async function asyncEval(code, label) {
         if (!_ready) throw new Error('Python environment not ready');
-        const bar = document.querySelector('.loading-bar-container');
-        if (bar) bar.style.display = '';
         _setLoadingBar(100);
         _setLoadingStatus(label || 'Running Python...');
+        const t0 = Date.now();
         try {
             return await _pyjs.async_exec_eval(code);
         } finally {
-            _setLoadingStatus('Ready');
-            setTimeout(() => {
-                if (bar) bar.style.display = 'none';
-            }, 800);
+            const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+            _setLoadingStatus('Ready — ' + elapsed + ' s  (env loaded in ' + _initElapsed + ' s)', true);
         }
     }
 

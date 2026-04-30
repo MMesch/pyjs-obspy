@@ -13,10 +13,11 @@
             <p>Proof-of-concept · Seismology tools powered by Python &amp; WebAssembly — no server required</p>
         </div>
 
-        <div class="loading-bar-container">
+        <div class="loading-status" id="loadingStatus">
             <div class="loading-bar" id="loadingBar"></div>
+            <span class="loading-status-dot" id="loadingDot"></span>
+            <span id="loadingText">Initializing Python environment…</span>
         </div>
-        <div class="loading-status" id="loadingStatus">Initializing Python environment...</div>
 
         <div class="tabs">
             <button class="tab active" data-tab="beachball">Beachball</button>
