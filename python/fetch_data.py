@@ -137,3 +137,34 @@ async def compute_response_plot():
     }
     plt.close(fig)
     return json.dumps(result, cls=_NumpyEncoder)
+
+
+async def get_stations_near(fdsn_service, lat, lon, maxradius_deg=15.0, at_time_iso=None):
+    client = Client(fdsn_service, _discover_services=False)
+    kwargs = dict(
+        latitude=float(lat),
+        longitude=float(lon),
+        maxradius=float(maxradius_deg),
+        channel='LH*,BH*,HH*',
+        level='station',
+    )
+    if at_time_iso:
+        t = UTCDateTime(at_time_iso)
+        kwargs['starttime'] = t - 86400   # station must have been active at event time
+        kwargs['endtime']   = t + 86400
+    try:
+        inv = client.get_stations(**kwargs)
+    except Exception as e:
+        return json.dumps({'error': str(e), 'stations': []})
+
+    stations = []
+    for net in inv:
+        for sta in net:
+            stations.append({
+                'network': net.code,
+                'station': sta.code,
+                'lat':     float(sta.latitude),
+                'lon':     float(sta.longitude),
+                'name':    sta.site.name if sta.site else '',
+            })
+    return json.dumps({'stations': stations}, cls=_NumpyEncoder)

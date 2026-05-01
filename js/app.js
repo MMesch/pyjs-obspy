@@ -110,7 +110,7 @@ async function fetchData() {
 
     } catch (err) {
         console.error('Fetch error:', err);
-        output.textContent += 'Error: ' + err.message + '\n';
+        output.textContent += 'Error: ' + (err.message || String(err)) + '\n';
     } finally {
         fetchBtn.disabled = false;
         fetchSpinner.style.display = 'none';

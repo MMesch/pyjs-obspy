@@ -442,3 +442,92 @@ select.form-control {
 }
 
 .hidden { display: none !important; }
+
+/* ── Events & Stations tab ─────────────────────────────────────────────────── */
+.events-controls {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    margin-bottom: 16px;
+}
+
+.events-controls .form-group { margin-bottom: 0; flex: 1; min-width: 130px; }
+.events-controls-btn { flex: 0 0 auto; }
+
+#eventsMap {
+    height: 480px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    margin: 16px 0;
+}
+
+.events-sidebar {
+    margin-top: 8px;
+}
+
+.events-status {
+    font-size: 0.82rem;
+    color: var(--ink-light);
+    padding: 4px 0 12px;
+}
+
+.events-selected-panel {
+    background: var(--sky-light);
+    border: 1px solid #b3d4e8;
+    border-left: 3px solid var(--sky);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+}
+
+.events-selected-title {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--slate);
+    margin-bottom: 4px;
+}
+
+.events-selected-meta {
+    font-size: 0.82rem;
+    color: var(--ink-light);
+    font-family: var(--font-mono);
+    margin-bottom: 14px;
+}
+
+.events-selected-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Station triangle marker */
+.sta-marker {
+    width: 0; height: 0;
+    border-left:  7px solid transparent;
+    border-right: 7px solid transparent;
+    border-bottom: 13px solid var(--green);
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,.35));
+}
+
+.sta-popup { font-size: 0.85rem; line-height: 1.5; }
+.sta-popup b { color: var(--slate); }
+.sta-popup span { color: var(--ink-light); font-size: 0.8rem; }
+
+.sta-use-btn {
+    margin-top: 8px;
+    padding: 5px 12px;
+    background: var(--slate);
+    color: #e8edf3;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.sta-use-btn:hover { background: var(--slate-mid); }
+
+@media (max-width: 720px) {
+    #eventsMap { height: 320px; }
+    .events-controls { gap: 12px; }
+}

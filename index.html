@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Obspy Pyjs Demo</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
     <div class="container">
@@ -22,8 +23,74 @@
         <div class="tabs">
             <button class="tab active" data-tab="beachball">Beachball</button>
             <button class="tab" data-tab="taup">TauP</button>
+            <button class="tab" data-tab="events">Events &amp; Stations</button>
             <button class="tab" data-tab="data">Data Processing</button>
             <button class="tab" data-tab="about">About</button>
+        </div>
+
+        <!-- Events & Stations Tab -->
+        <div id="events" class="tab-content">
+            <div class="status-box info">
+                <span><strong>Events &amp; Stations:</strong> Browse recent earthquakes and nearby stations. Click to prefill the Data Processing form.</span>
+            </div>
+
+            <div class="events-controls">
+                <div class="form-group">
+                    <label for="evtMinMag">Min. magnitude</label>
+                    <select id="evtMinMag" class="form-control">
+                        <option value="4">M 4+</option>
+                        <option value="5" selected>M 5+</option>
+                        <option value="6">M 6+</option>
+                        <option value="7">M 7+</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="evtDays">Time window</label>
+                    <select id="evtDays" class="form-control">
+                        <option value="7">Last 7 days</option>
+                        <option value="30" selected>Last 30 days</option>
+                        <option value="90">Last 90 days</option>
+                        <option value="365">Last year</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="evtFdsnService">FDSN service (stations)</label>
+                    <select id="evtFdsnService" class="form-control">
+                        <option value="GEOFON">GEOFON</option>
+                        <option value="EPOSFR">EPOS France</option>
+                        <option value="EARTHSCOPE">EarthScope</option>
+                        <option value="ETH">ETH Zurich</option>
+                        <option value="ORFEUS">ORFEUS</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="evtStationRadius">Station radius (°)</label>
+                    <input type="number" id="evtStationRadius" class="form-control" value="15" min="1" max="90">
+                </div>
+                <div class="form-group events-controls-btn">
+                    <label>&nbsp;</label>
+                    <button class="btn" id="evtReloadBtn" onclick="EventsTab.loadEvents()">Reload Events</button>
+                </div>
+            </div>
+
+            <div id="eventsMap"></div>
+
+            <div class="events-sidebar">
+                <div id="evtStatus" class="events-status">Loading recent earthquakes…</div>
+                <div id="evtSelectedPanel" class="events-selected-panel" style="display:none;">
+                    <div class="events-selected-title" id="evtSelectedTitle"></div>
+                    <div class="events-selected-meta" id="evtSelectedMeta"></div>
+                    <div class="events-selected-actions">
+                        <button class="btn" id="evtPrefillBtn" onclick="EventsTab.prefillDataTab()">
+                            Prefill Data Form
+                        </button>
+                        <button class="btn" id="evtStationsBtn" data-requires-python onclick="EventsTab.findStations()">
+                            <span class="spinner" id="evtStationsSpinner" style="display:none;"></span>
+                            Find Nearby Stations
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Data Fetching Tab -->
@@ -231,8 +298,10 @@ How it works:
         </div>
     </div>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="pyjs_runtime_browser.js"></script>
     <script src="js/pyenv.js"></script>
     <script src="js/app.js"></script>
+    <script src="js/events.js"></script>
 </body>
 </html>
