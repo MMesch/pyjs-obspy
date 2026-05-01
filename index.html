@@ -157,6 +157,28 @@
             <div class="output-container">
                 <h3>Results</h3>
                 <div class="output-content" id="output"></div>
+                <div class="download-bar" id="downloadBar" style="display:none;">
+                    <div class="form-group">
+                        <label for="dlStream">Stream</label>
+                        <select id="dlStream" class="form-control">
+                            <option value="raw">Raw</option>
+                            <option value="processed">Processed (response removed)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="dlFormat">Format</label>
+                        <select id="dlFormat" class="form-control">
+                            <option value="mseed">MiniSEED (.mseed)</option>
+                            <option value="sac">SAC (.zip)</option>
+                            <option value="csv">CSV (.csv)</option>
+                        </select>
+                    </div>
+                    <button class="btn" id="dlBtn" data-requires-python onclick="downloadStream()">
+                        <span class="spinner" id="dlSpinner" style="display:none;"></span>
+                        Save
+                    </button>
+                    <div id="dlError" class="dl-error" style="display:none;"></div>
+                </div>
                 <div class="plot-container">
                     <div id="rawPlot"></div>
                     <div id="processedPlot"></div>

@@ -443,6 +443,34 @@ select.form-control {
 
 .hidden { display: none !important; }
 
+/* ── Download bar ───────────────────────────────────────────────────────────── */
+.download-bar {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 14px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+}
+
+.download-bar .form-group { margin-bottom: 0; }
+.download-bar .form-group label { margin-bottom: 4px; }
+.download-bar select.form-control { min-width: 160px; }
+.dl-error {
+    width: 100%;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: var(--red-light);
+    border: 1px solid #e8b8b8;
+    border-left: 3px solid var(--red);
+    border-radius: var(--radius);
+    font-size: 0.82rem;
+    font-family: var(--font-mono);
+    color: var(--red);
+    white-space: pre-wrap;
+}
+
 /* ── Events & Stations tab ─────────────────────────────────────────────────── */
 .events-controls {
     display: flex;

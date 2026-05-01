@@ -44,6 +44,7 @@ async function fetchData() {
     fetchText.textContent = 'Loading...';
     output.textContent = '';
     rawEl.innerHTML = procEl.innerHTML = specEl.innerHTML = respPlotEl.innerHTML = '';
+    document.getElementById('downloadBar').style.display = 'none';
 
     // datetime-local value is local time; append Z to treat input as UTC
     const startUTC  = document.getElementById('startTime').value + ':00Z';
@@ -70,6 +71,12 @@ async function fetchData() {
                 + '<img src="data:image/png;base64,' + raw.raw_plot + '" alt="Raw seismic data">';
         }
 
+        // Show download bar as soon as we have data
+        const dlBar = document.getElementById('downloadBar');
+        const dlStream = document.getElementById('dlStream');
+        dlBar.style.display = '';
+        dlStream.querySelector('option[value="processed"]').disabled = true;
+
         // ── Step 2: remove instrument response ────────────────────────────
         if (removeResp && raw.has_response) {
             output.textContent += 'Removing instrument response...\n';
@@ -81,6 +88,7 @@ async function fetchData() {
                 output.textContent += 'Response removed (output: velocity)\n';
                 procEl.innerHTML = '<h4>Processed Data (response removed)</h4>'
                     + '<img src="data:image/png;base64,' + proc.processed_plot + '" alt="Processed">';
+                dlStream.querySelector('option[value="processed"]').disabled = false;
             }
         }
 
@@ -242,4 +250,46 @@ async function computeTaup() {
 }
 
 document.getElementById('computeTaup').addEventListener('click', computeTaup);
+
+// ── Download ──────────────────────────────────────────────────────────────────
+
+async function downloadStream() {
+    const fmt     = document.getElementById('dlFormat').value;
+    const useProc = document.getElementById('dlStream').value === 'processed';
+    const btn     = document.getElementById('dlBtn');
+    const spinner = document.getElementById('dlSpinner');
+    const errEl   = document.getElementById('dlError');
+
+    btn.disabled = true;
+    spinner.style.display = 'inline-block';
+    if (errEl) errEl.style.display = 'none';
+
+    try {
+        const result = JSON.parse(await PyEnv.asyncEval(
+            'await export_stream_serialise("' + fmt + '", ' + (useProc ? 'True' : 'False') + ')',
+            'Saving as ' + fmt.toUpperCase() + '…'));
+
+        if (result.error) {
+            if (errEl) { errEl.textContent = result.error; errEl.style.display = ''; }
+            return;
+        }
+
+        const bytes = Uint8Array.from(atob(result.data), c => c.charCodeAt(0));
+        const blob  = new Blob([bytes], { type: result.mime });
+        const url   = URL.createObjectURL(blob);
+        const a     = document.createElement('a');
+        a.href      = url;
+        a.download  = result.filename;
+        a.click();
+        URL.revokeObjectURL(url);
+
+    } catch (err) {
+        const msg = err.message || String(err);
+        if (errEl) { errEl.textContent = msg; errEl.style.display = ''; }
+        console.error('[download]', msg);
+    } finally {
+        btn.disabled = false;
+        spinner.style.display = 'none';
+    }
+}
 

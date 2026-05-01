@@ -83,7 +83,48 @@ const PyEnv = (() => {
         }
     }
 
-    return { initialize, exec, asyncEval, get ready() { return _ready; } };
+    async function probe() {
+        const code = [
+            'import sys, json, pyjs',
+            'r = {"platform": sys.platform}',
+            // pyjs.js — the JavaScript global object
+            'try:',
+            '    jsg = pyjs.js',
+            '    r["pyjs.js type"] = str(type(jsg))',
+            '    r["pyjs.js.Module"] = hasattr(jsg, "Module")',
+            '    r["pyjs.js.addFunction"] = hasattr(jsg, "addFunction")',
+            '    if hasattr(jsg, "Module"):',
+            '        r["pyjs.js.Module.addFunction"] = hasattr(jsg.Module, "addFunction")',
+            '        r["pyjs.js.Module.dynCall_viii"] = hasattr(jsg.Module, "dynCall_viii")',
+            'except Exception as e:',
+            '    r["pyjs.js_err"] = str(e)',
+            // pyjs.pyodide_polyfill
+            'try:',
+            '    pp = pyjs.pyodide_polyfill',
+            '    r["pyodide_polyfill"] = [x for x in dir(pp) if not x.startswith("_")]',
+            'except Exception as e:',
+            '    r["pyodide_polyfill_err"] = str(e)',
+            // create_callable
+            'try:',
+            '    import inspect',
+            '    r["create_callable_sig"] = str(inspect.signature(pyjs.create_callable))',
+            'except Exception as e:',
+            '    r["create_callable_err"] = str(e)',
+            // ctypes internals
+            'try:',
+            '    import ctypes',
+            '    r["ctypes.pythonapi"] = hasattr(ctypes, "pythonapi")',
+            '    r["ctypes.CFUNCTYPE_test"] = str(ctypes.CFUNCTYPE(None, ctypes.c_int))',
+            'except Exception as e:',
+            '    r["ctypes_err"] = str(e)',
+            'json.dumps(r)',
+        ].join('\n');
+        const result = JSON.parse(await asyncEval(code, 'Probing JS interop...'));
+        console.log('PyEnv probe result:', result);
+        return result;
+    }
+
+    return { initialize, exec, asyncEval, probe, get ready() { return _ready; } };
 })();
 
 PyEnv.initialize();
