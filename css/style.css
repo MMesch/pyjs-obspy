@@ -534,13 +534,23 @@ select.form-control {
     width: 0; height: 0;
     border-left:  7px solid transparent;
     border-right: 7px solid transparent;
-    border-bottom: 13px solid var(--green);
+    border-bottom: 13px solid #999;
     filter: drop-shadow(0 1px 2px rgba(0,0,0,.35));
 }
 
 .sta-popup { font-size: 0.85rem; line-height: 1.5; }
 .sta-popup b { color: var(--slate); }
 .sta-popup span { color: var(--ink-light); font-size: 0.8rem; }
+.sta-channels { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.sta-chan-btn {
+    font-size: 0.75rem; padding: 2px 7px; border-radius: 3px; cursor: pointer;
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--ink); white-space: nowrap;
+}
+.sta-chan-btn:hover { background: var(--sky-pale); }
+.sta-chan-best { border-color: #2a9d3f; color: #2a9d3f; font-weight: 600; }
+.sta-channels-loading { font-style: italic; }
+.sta-no-data { color: #cc3333; }
 
 .sta-use-btn {
     margin-top: 8px;

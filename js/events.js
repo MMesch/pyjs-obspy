@@ -5,6 +5,15 @@ const EventsTab = (() => {
     let _selectedEvent = null;
     let _selectedMarker = null;
 
+    // FDSN base URLs for availability endpoint
+    const _FDSN_URLS = {
+        GEOFON:      'https://geofon.gfz-potsdam.de',
+        EPOSFR:      'https://ws.resif.fr',
+        EARTHSCOPE:  'https://service.iris.edu',
+        ETH:         'https://eida.ethz.ch',
+        ORFEUS:      'https://www.orfeus-eu.org',
+    };
+
     // ── Map init ──────────────────────────────────────────────────────────────
 
     function initMap() {
@@ -81,7 +90,6 @@ const EventsTab = (() => {
     }
 
     function _selectEvent(evt, marker) {
-        // Reset previous highlight
         if (_selectedMarker) {
             _selectedMarker.setStyle({ color: 'rgba(0,0,0,0.4)', weight: 0.8 });
         }
@@ -113,24 +121,96 @@ const EventsTab = (() => {
 
     function prefillDataTab() {
         if (!_selectedEvent) return;
-        // Start 5 minutes before origin time
         const t = new Date(_selectedEvent.time - 5 * 60e3);
         document.getElementById('startTime').value = t.toISOString().slice(0, 16);
         document.getElementById('duration').value  = 120;
-        // Switch to data tab
         document.querySelector('.tab[data-tab="data"]').click();
     }
 
     // ── Stations ──────────────────────────────────────────────────────────────
 
-    function _stationIcon() {
+    function _stationIcon(color) {
+        const c = color || '#999';
         return L.divIcon({
             className: '',
-            html: '<div class="sta-marker"></div>',
-            iconSize:   [14, 14],
-            iconAnchor: [7, 14],
+            html: '<div class="sta-marker" style="border-bottom-color:' + c + '"></div>',
+            iconSize:    [14, 14],
+            iconAnchor:  [7, 14],
             popupAnchor: [0, -14],
         });
+    }
+
+    // Channel priority for auto-selection: lowest sample rate first, Z component preferred
+    const _CHAN_PRIORITY = ['LHZ','LH1','LH2','LHN','LHE',
+                            'BHZ','BH1','BH2','BHN','BHE',
+                            'HHZ','HH1','HH2','HHN','HHE'];
+
+    function _bestChannel(channels) {
+        for (const pref of _CHAN_PRIORITY) {
+            const match = channels.find(c => c.channel === pref);
+            if (match) return match;
+        }
+        return channels[0] || null;
+    }
+
+    // Query the FDSN availability endpoint for all stations at once.
+    // Returns { available: Set<"NET.STA">, channels: Map<"NET.STA", [{location,channel}]> }
+    // or null if the service doesn't support the endpoint.
+    async function _checkAvailability(service, stations, startIso, endIso) {
+        const base = _FDSN_URLS[service];
+        if (!base) return null;
+
+        const networks = [...new Set(stations.map(s => s.network))].join(',');
+        const staCodes = [...new Set(stations.map(s => s.station))].join(',');
+
+        const url = base + '/fdsnws/availability/1/query'
+            + '?network=' + encodeURIComponent(networks)
+            + '&station=' + encodeURIComponent(staCodes)
+            + '&channel=LH*,BH*,HH*'
+            + '&starttime=' + startIso
+            + '&endtime='   + endIso
+            + '&format=text&merge=samplerate';
+
+        try {
+            const resp = await fetch(url);
+            if (!resp.ok) return null;
+            const text = await resp.text();
+            const available = new Set();
+            const channels  = new Map();
+            text.trim().split('\n').forEach(line => {
+                if (line.startsWith('#') || !line.trim()) return;
+                const parts = line.trim().split(/\s+/);
+                if (parts.length < 4) return;
+                const [net, sta] = parts;
+                // Location codes are always 2 chars; channel codes always 3.
+                // Some services omit empty location codes instead of using '--',
+                // shifting all subsequent columns left.
+                const loc = parts[2].length === 3 ? ''    : parts[2];
+                const cha = parts[2].length === 3 ? parts[2] : parts[3];
+                const key = net + '.' + sta;
+                available.add(key);
+                if (!channels.has(key)) channels.set(key, []);
+                channels.get(key).push({ location: loc, channel: cha });
+            });
+            return { available, channels };
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function _channelButtons(staObj, channels) {
+        if (!channels || channels.length === 0) return '';
+        const best = _bestChannel(channels);
+        return '<div class="sta-channels">'
+            + channels.map(c => {
+                const label = (c.location && c.location !== '--' ? c.location + '.' : '') + c.channel;
+                const isBest = c === best;
+                const s = Object.assign({}, staObj, { location: c.location === '--' ? '' : c.location, channel: c.channel });
+                return '<button class="sta-chan-btn' + (isBest ? ' sta-chan-best' : '') + '" '
+                    + 'onclick="EventsTab.selectStation(' + JSON.stringify(s).replace(/"/g, '&quot;') + ')">'
+                    + label + '</button>';
+            }).join('')
+            + '</div>';
     }
 
     async function findStations() {
@@ -145,8 +225,8 @@ const EventsTab = (() => {
         spinner.style.display = 'inline-block';
         _stationLayer.clearLayers();
 
-        // Pass event time so only stations active at that moment are returned
-        const evtIso = new Date(_selectedEvent.time).toISOString();
+        const evtIso  = new Date(_selectedEvent.time).toISOString();
+        const endIso  = new Date(_selectedEvent.time + 3 * 3600e3).toISOString();
         const call = 'await get_stations_near("' + service + '",'
             + _selectedEvent.lat + ',' + _selectedEvent.lon + ',' + radius
             + ',"' + evtIso + '")';
@@ -159,21 +239,65 @@ const EventsTab = (() => {
                 return;
             }
 
+            // Build marker map keyed by NET.STA; show all grey while availability runs
+            const markerMap = {};
             result.stations.forEach(sta => {
+                const key    = sta.network + '.' + sta.station;
                 const marker = L.marker([sta.lat, sta.lon], { icon: _stationIcon() });
+                marker._staObj = sta;
                 marker.bindPopup(
                     '<div class="sta-popup">'
                     + '<b>' + sta.network + '.' + sta.station + '</b>'
                     + (sta.name ? '<br><span>' + sta.name + '</span>' : '')
-                    + '<br><button class="sta-use-btn" '
-                    + 'onclick="EventsTab.selectStation(' + JSON.stringify(sta).replace(/"/g, '&quot;') + ')">'
-                    + 'Use this station</button>'
+                    + '<br><span class="sta-channels-loading">checking channels…</span>'
                     + '</div>'
                 );
                 _stationLayer.addLayer(marker);
+                markerMap[key] = marker;
             });
 
-            _setStatus(result.stations.length + ' stations found on ' + service);
+            _setStatus(result.stations.length + ' stations found · checking availability…');
+
+            const avail = await _checkAvailability(service, result.stations, evtIso, endIso);
+
+            if (avail === null) {
+                // Endpoint not supported — leave grey, update popups to show plain Use button
+                Object.entries(markerMap).forEach(([, marker]) => {
+                    const sta = marker._staObj;
+                    marker.setPopupContent(
+                        '<div class="sta-popup">'
+                        + '<b>' + sta.network + '.' + sta.station + '</b>'
+                        + (sta.name ? '<br><span>' + sta.name + '</span>' : '')
+                        + '<br><button class="sta-use-btn" '
+                        + 'onclick="EventsTab.selectStation(' + JSON.stringify(sta).replace(/"/g, '&quot;') + ')">'
+                        + 'Use this station</button>'
+                        + '</div>'
+                    );
+                });
+                _setStatus(result.stations.length + ' stations (availability not supported by ' + service + ')');
+            } else {
+                let nData = 0;
+                Object.entries(markerMap).forEach(([key, marker]) => {
+                    const sta      = marker._staObj;
+                    const hasData  = avail.available.has(key);
+                    const chans    = avail.channels.get(key) || [];
+                    if (hasData) nData++;
+                    marker.setIcon(_stationIcon(hasData ? '#2a9d3f' : '#cc3333'));
+                    marker.setPopupContent(
+                        '<div class="sta-popup">'
+                        + '<b>' + sta.network + '.' + sta.station + '</b>'
+                        + (sta.name ? '<br><span>' + sta.name + '</span>' : '')
+                        + (hasData
+                            ? _channelButtons(sta, chans)
+                            : '<br><span class="sta-no-data">no data in this time window</span>')
+                        + '</div>'
+                    );
+                });
+                _setStatus(result.stations.length + ' stations · '
+                    + nData + ' with data (green) · '
+                    + (result.stations.length - nData) + ' without (red)');
+            }
+
         } catch (err) {
             _setStatus('Error: ' + (err.message || String(err)));
         } finally {
@@ -183,8 +307,10 @@ const EventsTab = (() => {
     }
 
     function selectStation(sta) {
-        document.getElementById('network').value = sta.network;
-        document.getElementById('station').value = sta.station;
+        document.getElementById('network').value  = sta.network;
+        document.getElementById('station').value  = sta.station;
+        document.getElementById('location').value = sta.location !== undefined ? sta.location : '*';
+        if (sta.channel) document.getElementById('channel').value = sta.channel;
         prefillDataTab();
     }
 
@@ -204,7 +330,6 @@ const EventsTab = (() => {
     // ── Wire up tab activation ────────────────────────────────────────────────
 
     document.querySelector('.tab[data-tab="events"]').addEventListener('click', () => {
-        // Leaflet needs the container to be visible before init
         setTimeout(initMap, 30);
     });
 
