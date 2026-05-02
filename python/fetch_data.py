@@ -89,6 +89,72 @@ async def process_stream():
     }, cls=_NumpyEncoder)
 
 
+def _spectrogram_figure(tr, colorbar=True):
+    from matplotlib import mlab
+    from matplotlib.colors import Normalize
+    from obspy.imaging.spectrogram import _nearest_pow_2
+    from obspy.imaging.cm import obspy_sequential
+
+    sr = float(tr.stats.sampling_rate)
+    data = tr.data - tr.data.mean()
+    npts = len(data)
+
+    wlen = 128 / sr
+    nfft = int(_nearest_pow_2(wlen * sr))
+    mult = int(_nearest_pow_2(8.0)) * nfft
+    nlap = int(nfft * 0.9)
+
+    specgram, freq, time = mlab.specgram(data, Fs=sr, NFFT=nfft,
+                                         pad_to=mult, noverlap=nlap)
+
+    specgram = 10 * np.log10(specgram[1:, :])
+    freq = freq[1:]
+
+    vmin = specgram.min()
+    vmax = specgram.max()
+    norm = Normalize(vmin, vmax, clip=True)
+
+    halfbin_time = (time[1] - time[0]) / 2.0
+    halfbin_freq = (freq[1] - freq[0]) / 2.0
+    freq_plot = np.concatenate((freq, [freq[-1] + 2 * halfbin_freq]))
+    time_plot = np.concatenate((time, [time[-1] + 2 * halfbin_time]))
+    time_plot -= halfbin_time
+    freq_plot -= halfbin_freq
+
+    # Convert time axis from seconds-since-start to real UTC epoch seconds
+    t0 = tr.stats.starttime.timestamp
+    time_utc = time_plot + t0
+
+    import matplotlib.dates as mdates
+    time_dates = [mdates.epoch2num(t) for t in time_utc]
+
+    fig_h = 2.8 + (0.5 if colorbar else 0)
+    fig = plt.figure(figsize=(20, fig_h))
+    if colorbar:
+        ax = fig.add_axes([0.06, 0.28, 0.92, 0.62])
+        cax = fig.add_axes([0.06, 0.10, 0.92, 0.08])
+    else:
+        ax = fig.add_axes([0.06, 0.15, 0.92, 0.78])
+
+    ax.set_yscale('log')
+    mesh = ax.pcolormesh(time_dates, freq_plot, specgram, norm=norm,
+                         cmap=obspy_sequential)
+
+    ax.xaxis_date()
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
+    ax.set_xlim(time_dates[0], time_dates[-1])
+    ax.set_ylim(freq[0], freq[-1])
+    ax.grid(False)
+    ax.set_ylabel('Frequency [Hz]')
+    ax.set_title(tr.id)
+
+    if colorbar:
+        cb = fig.colorbar(mesh, cax=cax, orientation='horizontal')
+        cb.set_label('dB')
+
+    return fig
+
+
 async def compute_spectrograms():
     global current_stream, _processed_stream
     st_src = (_processed_stream if _processed_stream is not None else current_stream)
@@ -103,8 +169,7 @@ async def compute_spectrograms():
 
     spectrograms = []
     for tr in st_for_spec:
-        tr.spectrogram(show=False, title=tr.id)
-        fig = plt.gcf()
+        fig = _spectrogram_figure(tr, colorbar=True)
         buf = io.BytesIO()
         fig.savefig(buf, format='png', dpi=100, bbox_inches='tight')
         buf.seek(0)

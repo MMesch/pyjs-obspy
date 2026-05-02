@@ -119,11 +119,15 @@ const EventsTab = (() => {
 
     // ── Prefill data form ─────────────────────────────────────────────────────
 
-    function prefillDataTab() {
+    function prefillDataTab(channel) {
         if (!_selectedEvent) return;
         const t = new Date(_selectedEvent.time - 5 * 60e3);
         document.getElementById('startTime').value = t.toISOString().slice(0, 16);
-        document.getElementById('duration').value  = 120;
+        const chan = channel || document.getElementById('channel').value || '';
+        const band = chan.charAt(0);
+        // SEED band code → sensible default duration (minutes)
+        const dur = { E: 15, S: 30, H: 30, B: 60, M: 60, L: 120, V: 360, U: 720 }[band] ?? 60;
+        document.getElementById('duration').value = dur;
         document.querySelector('.tab[data-tab="data"]').click();
     }
 
@@ -311,7 +315,7 @@ const EventsTab = (() => {
         document.getElementById('station').value  = sta.station;
         document.getElementById('location').value = sta.location !== undefined ? sta.location : '*';
         if (sta.channel) document.getElementById('channel').value = sta.channel;
-        prefillDataTab();
+        prefillDataTab(sta.channel || null);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
