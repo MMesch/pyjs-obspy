@@ -36,6 +36,7 @@ const PyEnv = (() => {
                     : filename;
 
             _pyjs = await createModule({ locateFile });
+            window.Module = _pyjs; // expose for ctypes/libffi addFunction lookup
             _setLoadingBar(40);
             _setLoadingStatus('Loading Obspy environment...');
 
@@ -90,33 +91,32 @@ const PyEnv = (() => {
             // pyjs.js — the JavaScript global object
             'try:',
             '    jsg = pyjs.js',
-            '    r["pyjs.js type"] = str(type(jsg))',
             '    r["pyjs.js.Module"] = hasattr(jsg, "Module")',
             '    r["pyjs.js.addFunction"] = hasattr(jsg, "addFunction")',
             '    if hasattr(jsg, "Module"):',
             '        r["pyjs.js.Module.addFunction"] = hasattr(jsg.Module, "addFunction")',
-            '        r["pyjs.js.Module.dynCall_viii"] = hasattr(jsg.Module, "dynCall_viii")',
             'except Exception as e:',
             '    r["pyjs.js_err"] = str(e)',
-            // pyjs.pyodide_polyfill
+            // ctypes source — is it Pyodide-patched?
             'try:',
-            '    pp = pyjs.pyodide_polyfill',
-            '    r["pyodide_polyfill"] = [x for x in dir(pp) if not x.startswith("_")]',
+            '    import ctypes, inspect',
+            '    src = open(inspect.getsourcefile(ctypes)).read()',
+            '    r["ctypes_src_file"] = inspect.getsourcefile(ctypes)',
+            '    r["ctypes_has_addFunction"] = "addFunction" in src',
+            '    r["ctypes_has_pyodide"] = "pyodide" in src.lower()',
+            '    r["ctypes_has_ffi_tramp"] = "ffi_tramp" in src',
             'except Exception as e:',
-            '    r["pyodide_polyfill_err"] = str(e)',
-            // create_callable
-            'try:',
-            '    import inspect',
-            '    r["create_callable_sig"] = str(inspect.signature(pyjs.create_callable))',
-            'except Exception as e:',
-            '    r["create_callable_err"] = str(e)',
-            // ctypes internals
+            '    r["ctypes_src_err"] = str(e)',
+            // ctypes callback creation test
             'try:',
             '    import ctypes',
-            '    r["ctypes.pythonapi"] = hasattr(ctypes, "pythonapi")',
-            '    r["ctypes.CFUNCTYPE_test"] = str(ctypes.CFUNCTYPE(None, ctypes.c_int))',
+            '    HANDLER = ctypes.CFUNCTYPE(None, ctypes.c_int)',
+            '    def _cb(x): pass',
+            '    cb = HANDLER(_cb)',
+            '    r["ctypes_cb_type"] = str(type(cb))',
+            '    r["ctypes_cb_addr"] = ctypes.cast(cb, ctypes.c_void_p).value',
             'except Exception as e:',
-            '    r["ctypes_err"] = str(e)',
+            '    r["ctypes_cb_err"] = str(e)',
             'json.dumps(r)',
         ].join('\n');
         const result = JSON.parse(await asyncEval(code, 'Probing JS interop...'));

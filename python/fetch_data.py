@@ -235,7 +235,9 @@ async def export_stream_serialise(fmt, use_processed=False):
 
     try:
         if fmt == 'mseed':
-            data = base64.b64encode(_write_mseed_pure(st)).decode()
+            buf = io.BytesIO()
+            st.write(buf, format='MSEED')
+            data = base64.b64encode(buf.getvalue()).decode()
             return json.dumps({'data': data, 'filename': label + '.mseed',
                                'mime': 'application/octet-stream'})
 
