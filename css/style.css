@@ -175,6 +175,7 @@ body {
     background: var(--surface-dim);
     border-bottom: 1px solid var(--border);
     overflow-x: auto;
+    overflow-y: hidden;
     padding: 0 8px;
     gap: 2px;
 }
@@ -184,6 +185,7 @@ body {
     min-width: 0;
     padding: 13px 16px;
     text-align: center;
+    white-space: nowrap;
     cursor: pointer;
     border: none;
     background: none;
