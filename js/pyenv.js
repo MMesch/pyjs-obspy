@@ -3,6 +3,7 @@ const PyEnv = (() => {
     let _ready = false;
     let _initStart = null;
     let _initElapsed = null;
+    let _timings = {};
 
     function _setLoadingBar(pct) {
         const el = document.getElementById('loadingBar');
@@ -10,10 +11,23 @@ const PyEnv = (() => {
     }
 
     function _setLoadingStatus(msg, done) {
-        const el = document.getElementById('loadingStatus');
         const txt = document.getElementById('loadingText');
+        const el  = document.getElementById('loadingStatus');
         if (txt) txt.textContent = msg;
-        if (el) el.classList.toggle('ready', !!done);
+        if (el)  el.classList.toggle('ready', !!done);
+    }
+
+    function _setLoadingStatusHTML(html, done) {
+        const txt = document.getElementById('loadingText');
+        const el  = document.getElementById('loadingStatus');
+        if (txt) txt.innerHTML = html;
+        if (el)  el.classList.toggle('ready', !!done);
+    }
+
+    function _tip(label, tooltip) {
+        const esc = tooltip.replace(/"/g, '&quot;').replace(/\n/g, '&#10;');
+        return '<span title="' + esc + '" style="border-bottom:1px dotted currentColor;cursor:help">'
+            + label + '</span>';
     }
 
     const _cacheBust = '?v=' + Date.now();
@@ -24,10 +38,76 @@ const PyEnv = (() => {
         return resp.text();
     }
 
+    function _wasmStats() {
+        const e = performance.getEntriesByType('resource')
+            .find(r => r.name.includes('pyjs_runtime_browser.wasm'));
+        if (!e) return null;
+        const cached = e.transferSize === 0 && e.decodedBodySize > 0;
+        const networkS = (e.duration / 1000).toFixed(1);
+        const sizeMB = (e.decodedBodySize / 1048576).toFixed(1);
+        return { cached, networkS, sizeMB };
+    }
+
+    function _packageStats() {
+        const entries = performance.getEntriesByType('resource')
+            .filter(e => e.name.includes('/packages/') || e.name.includes('empack_env_meta'));
+        let transferred = 0, decoded = 0;
+        for (const e of entries) {
+            transferred += e.transferSize   || 0;
+            decoded     += e.decodedBodySize || 0;
+        }
+        const cached = transferred === 0 && decoded > 0;
+        const mb = (b) => (b / 1048576).toFixed(1) + ' MB';
+        return { transferred, decoded, cached, mb };
+    }
+
+    function _readyHTML(opElapsed) {
+        const t = _timings;
+        const wasm = _wasmStats();
+        const pkg  = _packageStats();
+
+        const wasmTooltip = [
+            'Fetches and compiles the Python WebAssembly binary'
+                + (wasm ? ' (' + wasm.sizeMB + ' MB)' : '') + '.',
+            wasm && wasm.cached
+                ? 'Served from browser cache — no network request.'
+                : wasm
+                    ? 'Network fetch took ' + wasm.networkS + ' s; the rest is browser WASM compilation.'
+                    : '',
+            'The browser caches the compiled result so subsequent loads are faster.',
+        ].filter(Boolean).join('\n');
+
+        const pkgCacheNote = pkg.cached
+            ? 'Served from browser cache — no network request. Unpacking into the\nin-browser filesystem still takes several seconds even when cached.'
+            : pkg.transferred > 0
+                ? pkg.mb(pkg.transferred) + ' transferred over the network.'
+                : '';
+        const pkgNote = pkg.cached ? 'cached' : pkg.mb(pkg.transferred);
+        const pkgTooltip = [
+            'Downloads and installs ObsPy, NumPy, SciPy and all other Python',
+            'dependencies into the in-browser virtual filesystem'
+                + (pkg.decoded > 0 ? ' (' + pkg.mb(pkg.decoded) + ' unpacked).' : '.'),
+            pkgCacheNote,
+        ].filter(Boolean).join('\n');
+
+        const pyTooltip = 'First-time import of obspy, numpy, scipy and other modules.\n'
+            + 'Runs on every page load regardless of caching.';
+
+        let parts = [];
+        if (opElapsed !== null)
+            parts.push('last operation ' + opElapsed + ' s');
+        parts.push(_tip('interpreter ' + t.wasm + ' s', wasmTooltip));
+        parts.push(_tip('packages ' + t.packages + ' s, ' + pkgNote, pkgTooltip));
+        parts.push(_tip('Python ' + t.pyinit + ' s', pyTooltip));
+        parts.push('total ' + _initElapsed + ' s');
+
+        return 'Ready — ' + parts.join(' · ');
+    }
+
     async function initialize() {
         _initStart = Date.now();
         try {
-            _setLoadingStatus('Initializing Python runtime...');
+            _setLoadingStatus('Interpreter: loading WebAssembly…');
             _setLoadingBar(10);
 
             const locateFile = (filename) =>
@@ -35,28 +115,35 @@ const PyEnv = (() => {
                     ? './pyjs_runtime_browser.wasm'
                     : filename;
 
+            const t0 = Date.now();
             _pyjs = await createModule({ locateFile });
             window.Module = _pyjs; // expose for ctypes/libffi addFunction lookup
-            _setLoadingBar(40);
-            _setLoadingStatus('Loading Obspy environment...');
+            _timings.wasm = ((Date.now() - t0) / 1000).toFixed(1);
 
+            _setLoadingBar(30);
+            _setLoadingStatus('Packages: downloading and installing…');
+
+            const t1 = Date.now();
             await _pyjs.bootstrap_from_empack_packed_environment(
                 './empack_env_meta.json',
                 './packages/'
             );
+            _timings.packages = ((Date.now() - t1) / 1000).toFixed(1);
 
             _setLoadingBar(80);
-            _setLoadingStatus('Applying patches...');
-            _pyjs.exec(await _loadFile('./python/patches.py'));
+            _setLoadingStatus('Python: importing modules…');
 
-            _setLoadingStatus('Loading Python modules...');
+            const t2 = Date.now();
+            _pyjs.exec(await _loadFile('./python/patches.py'));
+            _setLoadingStatus('Python: loading app modules…');
             _pyjs.exec(await _loadFile('./python/fetch_data.py'));
             _pyjs.exec(await _loadFile('./python/beachball.py'));
             _pyjs.exec(await _loadFile('./python/taup.py'));
+            _timings.pyinit = ((Date.now() - t2) / 1000).toFixed(1);
 
             _setLoadingBar(100);
             _initElapsed = ((Date.now() - _initStart) / 1000).toFixed(1);
-            _setLoadingStatus('Environment ready — loaded in ' + _initElapsed + ' s', true);
+            _setLoadingStatusHTML(_readyHTML(null), true);
             _ready = true;
             setTimeout(() => document.dispatchEvent(new Event('pyready')), 450);
 
@@ -74,13 +161,13 @@ const PyEnv = (() => {
     async function asyncEval(code, label) {
         if (!_ready) throw new Error('Python environment not ready');
         _setLoadingBar(100);
-        _setLoadingStatus(label || 'Running Python...');
+        _setLoadingStatus(label || 'Running Python…');
         const t0 = Date.now();
         try {
             return await _pyjs.async_exec_eval(code);
         } finally {
             const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
-            _setLoadingStatus('Ready — ' + elapsed + ' s  (env loaded in ' + _initElapsed + ' s)', true);
+            _setLoadingStatusHTML(_readyHTML(elapsed), true);
         }
     }
 
@@ -88,7 +175,6 @@ const PyEnv = (() => {
         const code = [
             'import sys, json, pyjs',
             'r = {"platform": sys.platform}',
-            // pyjs.js — the JavaScript global object
             'try:',
             '    jsg = pyjs.js',
             '    r["pyjs.js.Module"] = hasattr(jsg, "Module")',
@@ -97,7 +183,6 @@ const PyEnv = (() => {
             '        r["pyjs.js.Module.addFunction"] = hasattr(jsg.Module, "addFunction")',
             'except Exception as e:',
             '    r["pyjs.js_err"] = str(e)',
-            // ctypes source — is it Pyodide-patched?
             'try:',
             '    import ctypes, inspect',
             '    src = open(inspect.getsourcefile(ctypes)).read()',
@@ -107,7 +192,6 @@ const PyEnv = (() => {
             '    r["ctypes_has_ffi_tramp"] = "ffi_tramp" in src',
             'except Exception as e:',
             '    r["ctypes_src_err"] = str(e)',
-            // ctypes callback creation test
             'try:',
             '    import ctypes',
             '    HANDLER = ctypes.CFUNCTYPE(None, ctypes.c_int)',
