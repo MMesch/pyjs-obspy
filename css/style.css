@@ -456,7 +456,7 @@ select.form-control {
     .header { padding: 28px 20px 24px; }
     .header h1 { font-size: 1.5rem; }
     .tabs { padding: 0 4px; }
-    .tab { font-size: 0.8rem; padding: 11px 10px; }
+    .tab { flex: 0 0 auto; font-size: 0.8rem; padding: 11px 12px; }
 }
 
 .hidden { display: none !important; }
