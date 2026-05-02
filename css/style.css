@@ -61,7 +61,23 @@ body {
     padding: 40px 36px 32px;
     position: relative;
     overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
 }
+
+.header-text { flex: 1; min-width: 0; }
+
+.header-logo {
+    height: 36px;
+    width: auto;
+    flex-shrink: 0;
+    filter: brightness(0) invert(1);
+    opacity: 0.85;
+    transition: opacity 0.15s;
+}
+.header-logo:hover { opacity: 1; }
 
 /* Subtle seismogram wave decoration */
 .header::after {
@@ -165,7 +181,7 @@ body {
 
 .tab {
     flex: 1;
-    min-width: 110px;
+    min-width: 0;
     padding: 13px 16px;
     text-align: center;
     cursor: pointer;
@@ -438,7 +454,7 @@ select.form-control {
     .header { padding: 28px 20px 24px; }
     .header h1 { font-size: 1.5rem; }
     .tabs { padding: 0 4px; }
-    .tab { min-width: 80px; font-size: 0.8rem; padding: 11px 10px; }
+    .tab { font-size: 0.8rem; padding: 11px 10px; }
 }
 
 .hidden { display: none !important; }
@@ -568,4 +584,65 @@ select.form-control {
 @media (max-width: 720px) {
     #eventsMap { height: 320px; }
     .events-controls { gap: 12px; }
+}
+
+/* ── Footer ────────────────────────────────────────────────────────────────── */
+.footer {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 14px 36px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--ink-light);
+}
+.footer a { color: var(--ink-light); }
+.footer a:hover { color: var(--slate); }
+
+/* ── About tab ─────────────────────────────────────────────────────────────── */
+.about-section {
+    margin-bottom: 28px;
+}
+.about-section h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--slate);
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+}
+.about-section p {
+    font-size: 0.9rem;
+    color: var(--ink);
+    line-height: 1.65;
+    margin-bottom: 8px;
+}
+.about-section a { color: var(--slate); }
+.about-list {
+    font-size: 0.9rem;
+    color: var(--ink);
+    line-height: 1.65;
+    padding-left: 1.4em;
+}
+.about-list li { margin-bottom: 4px; }
+.about-acks {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+    margin-bottom: 12px;
+}
+.about-acks td {
+    padding: 5px 12px 5px 0;
+    vertical-align: top;
+    color: var(--ink);
+    border-bottom: 1px solid var(--border);
+}
+.about-acks td:first-child { font-weight: 600; white-space: nowrap; min-width: 120px; }
+.about-acks td a { color: var(--slate); }
+.about-note {
+    font-size: 0.82rem;
+    color: var(--ink-light);
+    font-style: italic;
 }

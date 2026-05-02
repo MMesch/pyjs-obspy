@@ -3,15 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Obspy Pyjs Demo</title>
-    <link rel="stylesheet" href="css/style.css">
+    <title>ObsPy in the Browser</title>
+<link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>ObsPy in the Browser</h1>
-            <p>Proof-of-concept · Seismology tools powered by Python &amp; WebAssembly — no server required</p>
+            <div class="header-text">
+                <h1>ObsPy in the Browser</h1>
+                <p>Proof-of-concept · Seismology tools powered by Python &amp; WebAssembly — no server required</p>
+            </div>
+            <a href="https://quantstack.net" target="_blank" rel="noopener">
+                <img src="logo-quantstack.svg" alt="QuantStack" class="header-logo">
+            </a>
         </div>
 
         <div class="loading-status" id="loadingStatus">
@@ -303,20 +308,44 @@
 
         <!-- About Tab -->
         <div id="about" class="tab-content">
-            <div class="output-container">
+            <div class="about-section">
                 <h3>About This Demo</h3>
-                <div class="output-content">
-This demo showcases Obspy running in your browser via Pyjs (Python compiled to WebAssembly).
-
-Technologies: Obspy, Pyjs, Emscripten, FDSN Web Services
-
-How it works:
-1. Python environment loads in WebAssembly on page start
-2. Obspy and dependencies are available in-browser
-3. Data is fetched from FDSN web services
-4. All processing happens locally — no server required
-                </div>
+                <p>This demo runs <a href="https://docs.obspy.org" target="_blank" rel="noopener">ObsPy</a> — a full Python seismology library — entirely in your browser. There is no server doing any computation. When the page loads, a Python interpreter compiled to WebAssembly is bootstrapped, ObsPy and its dependencies are installed into an in-browser virtual filesystem, and from that point all data processing happens locally on your machine.</p>
+                <p>Seismic waveforms are fetched on demand from public <a href="https://www.fdsn.org/webservices/" target="_blank" rel="noopener">FDSN web services</a>. Earthquake catalogue data comes from the <a href="https://earthquake.usgs.gov/fdsnws/event/1/" target="_blank" rel="noopener">USGS Earthquake Hazards Program</a>. No personal data is collected or transmitted.</p>
+                <p>This is a proof-of-concept put together by Matthias Meschede. Questions and feedback: <a href="mailto:matthias.meschede@quantstack.net">matthias.meschede@quantstack.net</a></p>
+                <p>Interested in building tools like this — interactive scientific applications running entirely in the browser? <a href="https://quantstack.net" target="_blank" rel="noopener">QuantStack</a> specialises in open-source scientific computing infrastructure and is happy to discuss collaborations.</p>
             </div>
+
+            <div class="about-section">
+                <h3>How It Works</h3>
+                <ol class="about-list">
+                    <li>The <a href="https://github.com/emscripten-forge/pyjs" target="_blank" rel="noopener">pyjs</a> runtime (Python compiled to WebAssembly via Emscripten) loads in your browser.</li>
+                    <li>ObsPy, NumPy, SciPy, Matplotlib and their dependencies are downloaded and unpacked into an in-browser filesystem.</li>
+                    <li>Python modules are imported — this happens once per page load.</li>
+                    <li>All subsequent data fetching, processing, and plotting runs as ordinary Python code, fully client-side.</li>
+                </ol>
+            </div>
+
+            <div class="about-section">
+                <h3>Acknowledgements</h3>
+                <p>This demo builds on a large stack of open-source scientific software. Key components:</p>
+                <table class="about-acks">
+                    <tr><td><a href="https://docs.obspy.org" target="_blank" rel="noopener">ObsPy</a></td><td>Seismology in Python — LGPL-3.0</td></tr>
+                    <tr><td><a href="https://numpy.org" target="_blank" rel="noopener">NumPy</a></td><td>Array computing — BSD 3-Clause</td></tr>
+                    <tr><td><a href="https://scipy.org" target="_blank" rel="noopener">SciPy</a></td><td>Scientific computing — BSD 3-Clause</td></tr>
+                    <tr><td><a href="https://matplotlib.org" target="_blank" rel="noopener">Matplotlib</a></td><td>Plotting — PSF-based license</td></tr>
+                    <tr><td><a href="https://github.com/emscripten-forge/pyjs" target="_blank" rel="noopener">pyjs</a></td><td>Python → WebAssembly runtime — BSD 3-Clause</td></tr>
+                    <tr><td><a href="https://emscripten.org" target="_blank" rel="noopener">Emscripten</a></td><td>C/C++ → WebAssembly compiler — MIT</td></tr>
+                    <tr><td><a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a></td><td>Interactive maps — BSD 2-Clause</td></tr>
+                    <tr><td><a href="https://carto.com" target="_blank" rel="noopener">CARTO</a></td><td>Basemap tiles — CC BY 3.0 · © OpenStreetMap contributors</td></tr>
+                </table>
+                <p class="about-note">The interface was developed with the assistance of AI coding tools, in combination with significant human design, iteration, and domain expertise. If you believe any part of this software infringes a copyright, please contact <a href="mailto:matthias.meschede@quantstack.net">matthias.meschede@quantstack.net</a> immediately.</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <span>© 2025 <a href="https://quantstack.net" target="_blank" rel="noopener">QuantStack SAS</a> · MIT License</span>
+            <span>Questions: <a href="mailto:matthias.meschede@quantstack.net">matthias.meschede@quantstack.net</a></span>
         </div>
     </div>
 
