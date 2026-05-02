@@ -4,6 +4,7 @@ const EventsTab = (() => {
     let _stationLayer = null;
     let _selectedEvent = null;
     let _selectedMarker = null;
+    let _selectedStation = null;
 
     // FDSN base URLs for availability endpoint
     const _FDSN_URLS = {
@@ -311,11 +312,16 @@ const EventsTab = (() => {
     }
 
     function selectStation(sta) {
+        _selectedStation = sta;
         document.getElementById('network').value  = sta.network;
         document.getElementById('station').value  = sta.station;
         document.getElementById('location').value = sta.location !== undefined ? sta.location : '*';
         if (sta.channel) document.getElementById('channel').value = sta.channel;
         prefillDataTab(sta.channel || null);
+    }
+
+    function getContext() {
+        return { event: _selectedEvent, station: _selectedStation };
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -337,5 +343,5 @@ const EventsTab = (() => {
         setTimeout(initMap, 30);
     });
 
-    return { loadEvents, prefillDataTab, findStations, selectStation };
+    return { loadEvents, prefillDataTab, findStations, selectStation, getContext };
 })();

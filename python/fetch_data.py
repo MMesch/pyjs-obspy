@@ -22,11 +22,30 @@ class _NumpyEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
-def _plot_stream(st):
+def _plot_stream(st, arrivals=None):
+    import matplotlib.dates as mdates
+    from datetime import timezone
+
     fig = plt.figure(figsize=(20, 6))
     st.plot(fig=fig, equal_scale=False)
+
+    if arrivals:
+        t0 = st[0].stats.starttime
+        t1 = st[-1].stats.endtime
+        for ax in fig.axes:
+            for arr in arrivals:
+                arr_utc = arr['utc']
+                if not (t0 <= arr_utc <= t1):
+                    continue
+                x = mdates.date2num(arr_utc.datetime.replace(tzinfo=timezone.utc))
+                color = _phase_color(arr['name'])
+                ax.axvline(x=x, color=color, lw=0.9, alpha=0.8, zorder=5)
+                ax.text(x, 0.97, arr['name'], fontsize=7, color=color,
+                        transform=ax.get_xaxis_transform(),
+                        ha='center', va='top', zorder=6, clip_on=True)
+
     buf = io.BytesIO()
-    plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+    fig.savefig(buf, format='png', dpi=100, bbox_inches='tight')
     buf.seek(0)
     data = base64.b64encode(buf.read()).decode('utf-8')
     plt.close(fig)
@@ -35,12 +54,34 @@ def _plot_stream(st):
 
 current_stream = None
 _processed_stream = None
+_arrivals = None
+_taup_model = None
+
+
+def _get_taup_model():
+    global _taup_model
+    if _taup_model is None:
+        from obspy.taup import TauPyModel
+        _taup_model = TauPyModel(model='iasp91')
+    return _taup_model
+
+
+def _phase_color(name):
+    n = name.upper()
+    if n[0] == 'P' or n in ('PP', 'PCP'):
+        return '#c0392b'
+    if n[0] == 'S' or n in ('SS', 'SCS'):
+        return '#2471a3'
+    return '#888888'
 
 
 async def fetch_raw(fdsn_service, network, station, location, channel,
-                    starttime_iso, endtime_iso, attach_response=True):
-    global current_stream, _processed_stream
+                    starttime_iso, endtime_iso, attach_response=True,
+                    event_lat=None, event_lon=None, event_depth_km=None,
+                    event_time_iso=None, sta_lat=None, sta_lon=None):
+    global current_stream, _processed_stream, _arrivals
     _processed_stream = None
+    _arrivals = None
 
     client = Client(fdsn_service, _discover_services=False)
     starttime = UTCDateTime(starttime_iso)
@@ -57,6 +98,23 @@ async def fetch_raw(fdsn_service, network, station, location, channel,
     )
     current_stream = st
 
+    if all(v is not None for v in (event_lat, event_lon, event_depth_km,
+                                   event_time_iso, sta_lat, sta_lon)):
+        try:
+            from obspy.geodetics import locations2degrees
+            dist_deg = locations2degrees(float(event_lat), float(event_lon),
+                                         float(sta_lat),   float(sta_lon))
+            event_utc = UTCDateTime(event_time_iso)
+            model = _get_taup_model()
+            raw_arrivals = model.get_travel_times(
+                float(event_depth_km), dist_deg,
+                phase_list=['P', 'S', 'PP', 'SS', 'pP', 'sP', 'PcP', 'ScS'],
+            )
+            _arrivals = [{'name': arr.name, 'utc': event_utc + arr.time}
+                         for arr in raw_arrivals]
+        except Exception:
+            _arrivals = None
+
     result = {
         'num_traces': len(st),
         'has_response': len(st) > 0 and hasattr(st[0].stats, 'response'),
@@ -70,13 +128,13 @@ async def fetch_raw(fdsn_service, network, station, location, channel,
             'sampling_rate': tr.stats.sampling_rate,
             'npts':          tr.stats.npts,
         } for tr in st],
-        'raw_plot': _plot_stream(st) if len(st) > 0 else None,
+        'raw_plot': _plot_stream(st, _arrivals) if len(st) > 0 else None,
     }
     return json.dumps(result, cls=_NumpyEncoder)
 
 
 async def process_stream():
-    global current_stream, _processed_stream
+    global current_stream, _processed_stream, _arrivals
     if current_stream is None or len(current_stream) == 0:
         return json.dumps({'error': 'No stream loaded'})
 
@@ -85,7 +143,7 @@ async def process_stream():
     _processed_stream = st_proc
 
     return json.dumps({
-        'processed_plot': _plot_stream(st_proc),
+        'processed_plot': _plot_stream(st_proc, _arrivals),
     }, cls=_NumpyEncoder)
 
 
@@ -126,7 +184,8 @@ def _spectrogram_figure(tr, colorbar=True):
     time_utc = time_plot + t0
 
     import matplotlib.dates as mdates
-    time_dates = [mdates.epoch2num(t) for t in time_utc]
+    from datetime import datetime, timezone
+    time_dates = mdates.date2num([datetime.fromtimestamp(t, tz=timezone.utc) for t in time_utc])
 
     fig_h = 2.8 + (0.5 if colorbar else 0)
     fig = plt.figure(figsize=(20, fig_h))

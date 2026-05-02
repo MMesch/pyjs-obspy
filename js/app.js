@@ -54,11 +54,22 @@ async function fetchData() {
     try {
         // ── Step 1: fetch raw waveforms ────────────────────────────────────
         output.textContent += 'Connecting to ' + fdsnService + '...\n';
+        const ctx = EventsTab.getContext();
+        let evtKwargs = '';
+        if (ctx.event && ctx.station && ctx.station.lat != null) {
+            evtKwargs = ',event_lat='      + ctx.event.lat
+                      + ',event_lon='      + ctx.event.lon
+                      + ',event_depth_km=' + ctx.event.depth
+                      + ',event_time_iso=' + '"' + new Date(ctx.event.time).toISOString() + '"'
+                      + ',sta_lat='        + ctx.station.lat
+                      + ',sta_lon='        + ctx.station.lon;
+        }
         const rawCall = 'await fetch_raw('
             + '"' + fdsnService + '","' + network + '","' + station + '",'
             + '"' + location + '","' + channel + '",'
             + '"' + startUTC + '","' + endUTC + '",'
-            + 'attach_response=' + (attachResp ? 'True' : 'False') + ')';
+            + 'attach_response=' + (attachResp ? 'True' : 'False')
+            + evtKwargs + ')';
         const raw = JSON.parse(await PyEnv.asyncEval(rawCall,
             'Fetching waveforms from ' + fdsnService + '…'));
 
