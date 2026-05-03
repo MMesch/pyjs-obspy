@@ -55,6 +55,7 @@ def _plot_stream(st, arrivals=None):
 current_stream = None
 _processed_stream = None
 _arrivals = None
+_dist_deg = None
 _taup_model = None
 
 
@@ -67,21 +68,25 @@ def _get_taup_model():
 
 
 def _phase_color(name):
-    n = name.upper()
-    if n[0] == 'P' or n in ('PP', 'PCP'):
-        return '#c0392b'
-    if n[0] == 'S' or n in ('SS', 'SCS'):
-        return '#2471a3'
+    # Upper-case first significant letter to classify
+    n = name.lstrip('ps')   # strip depth-phase prefixes (p, s, pp, ss...)
+    u = (n or name).upper()
+    if u.startswith('P'):
+        return '#c0392b'   # red for P-type
+    if u.startswith('S'):
+        return '#2471a3'   # blue for S-type
     return '#888888'
 
 
 async def fetch_raw(fdsn_service, network, station, location, channel,
                     starttime_iso, endtime_iso, attach_response=True,
+                    phase_list=None,
                     event_lat=None, event_lon=None, event_depth_km=None,
                     event_time_iso=None, sta_lat=None, sta_lon=None):
-    global current_stream, _processed_stream, _arrivals
+    global current_stream, _processed_stream, _arrivals, _dist_deg
     _processed_stream = None
     _arrivals = None
+    _dist_deg = None
 
     client = Client(fdsn_service, _discover_services=False)
     starttime = UTCDateTime(starttime_iso)
@@ -106,12 +111,15 @@ async def fetch_raw(fdsn_service, network, station, location, channel,
                                          float(sta_lat),   float(sta_lon))
             event_utc = UTCDateTime(event_time_iso)
             model = _get_taup_model()
+            _phases = phase_list if phase_list else \
+                ['P', 'pP', 'PP', 'PcP', 'PKP', 'PKIKP', 'S', 'sP', 'SS', 'ScS', 'SKS']
             raw_arrivals = model.get_travel_times(
                 float(event_depth_km), dist_deg,
-                phase_list=['P', 'S', 'PP', 'SS', 'pP', 'sP', 'PcP', 'ScS'],
+                phase_list=_phases,
             )
             _arrivals = [{'name': arr.name, 'utc': event_utc + arr.time}
                          for arr in raw_arrivals]
+            _dist_deg = dist_deg
         except Exception:
             _arrivals = None
 
@@ -129,6 +137,7 @@ async def fetch_raw(fdsn_service, network, station, location, channel,
             'npts':          tr.stats.npts,
         } for tr in st],
         'stream_bytes': sum(tr.data.nbytes for tr in st),
+        'dist_deg': float(_dist_deg) if _dist_deg is not None else None,
         'raw_plot': _plot_stream(st, _arrivals) if len(st) > 0 else None,
     }
     return json.dumps(result, cls=_NumpyEncoder)
@@ -264,15 +273,20 @@ async def compute_response_plot():
     return json.dumps(result, cls=_NumpyEncoder)
 
 
-async def get_stations_near(fdsn_service, lat, lon, maxradius_deg=15.0, at_time_iso=None):
+async def get_stations_near(fdsn_service, lat, lon,
+                           minradius_deg=0.0, maxradius_deg=15.0,
+                           network_filter=None, at_time_iso=None):
     client = Client(fdsn_service, _discover_services=False)
     kwargs = dict(
         latitude=float(lat),
         longitude=float(lon),
+        minradius=float(minradius_deg),
         maxradius=float(maxradius_deg),
         channel='LH*,BH*,HH*',
         level='station',
     )
+    if network_filter:
+        kwargs['network'] = network_filter
     if at_time_iso:
         t = UTCDateTime(at_time_iso)
         kwargs['starttime'] = t - 86400   # station must have been active at event time
@@ -293,6 +307,62 @@ async def get_stations_near(fdsn_service, lat, lon, maxradius_deg=15.0, at_time_
                 'name':    sta.site.name if sta.site else '',
             })
     return json.dumps({'stations': stations}, cls=_NumpyEncoder)
+
+
+async def get_networks_near(fdsn_service, lat, lon,
+                            minradius_deg=0.0, maxradius_deg=15.0, at_time_iso=None):
+    client = Client(fdsn_service, _discover_services=False)
+    kwargs = dict(
+        latitude=float(lat),
+        longitude=float(lon),
+        minradius=float(minradius_deg),
+        maxradius=float(maxradius_deg),
+        channel='LH*,BH*,HH*',
+        level='network',
+    )
+    if at_time_iso:
+        t = UTCDateTime(at_time_iso)
+        kwargs['starttime'] = t - 86400
+        kwargs['endtime']   = t + 86400
+    try:
+        inv = client.get_stations(**kwargs)
+        networks = sorted(set(net.code for net in inv))
+        return json.dumps({'networks': networks})
+    except Exception as e:
+        return json.dumps({'error': str(e), 'networks': []})
+
+
+async def fetch_events(fdsn_service, min_magnitude, starttime_iso, endtime_iso):
+    starttime = UTCDateTime(starttime_iso)
+    endtime   = UTCDateTime(endtime_iso)
+    client = Client(fdsn_service, _discover_services=False)
+    try:
+        catalog = client.get_events(
+            starttime=starttime,
+            endtime=endtime,
+            minmagnitude=float(min_magnitude),
+            orderby='time',
+            limit=500,
+        )
+    except Exception as e:
+        return json.dumps({'error': str(e), 'events': []})
+
+    events = []
+    for ev in catalog:
+        origin = ev.preferred_origin() or (ev.origins[0] if ev.origins else None)
+        mag    = ev.preferred_magnitude() or (ev.magnitudes[0] if ev.magnitudes else None)
+        if not origin or not mag:
+            continue
+        desc = ev.event_descriptions[0].text if ev.event_descriptions else ''
+        events.append({
+            'lat':   float(origin.latitude),
+            'lon':   float(origin.longitude),
+            'depth': float(origin.depth / 1000) if origin.depth is not None else 0.0,
+            'mag':   float(mag.mag),
+            'place': desc,
+            'time':  int(origin.time.timestamp * 1000),
+        })
+    return json.dumps({'events': events}, cls=_NumpyEncoder)
 
 
 def _write_mseed_pure(st):

@@ -492,60 +492,138 @@ select.form-control {
 /* ── Events & Stations tab ─────────────────────────────────────────────────── */
 .events-controls {
     display: flex;
-    gap: 20px;
+    gap: 16px;
     flex-wrap: wrap;
     align-items: flex-end;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
 }
 
-.events-controls .form-group { margin-bottom: 0; flex: 1; min-width: 130px; }
-.events-controls-btn { flex: 0 0 auto; }
+.events-controls .form-group { margin-bottom: 0; flex: 1; min-width: 110px; }
+
+
+.events-pipeline {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    margin-bottom: 12px;
+}
+
+.events-pipeline-step {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.evt-pipe-label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--ink-light);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 6px;
+}
 
 #eventsMap {
     height: 480px;
     border-radius: var(--radius);
     border: 1px solid var(--border);
     box-shadow: var(--shadow-sm);
-    margin: 16px 0;
-}
-
-.events-sidebar {
-    margin-top: 8px;
+    margin: 12px 0;
 }
 
 .events-status {
     font-size: 0.82rem;
     color: var(--ink-light);
-    padding: 4px 0 12px;
+    padding: 4px 0 8px;
 }
 
-.events-selected-panel {
-    background: var(--sky-light);
-    border: 1px solid #b3d4e8;
-    border-left: 3px solid var(--sky);
-    border-radius: var(--radius);
-    padding: 14px 16px;
-}
-
-.events-selected-title {
-    font-weight: 700;
-    font-size: 1rem;
-    color: var(--slate);
-    margin-bottom: 4px;
-}
-
-.events-selected-meta {
-    font-size: 0.82rem;
-    color: var(--ink-light);
-    font-family: var(--font-mono);
-    margin-bottom: 14px;
-}
-
-.events-selected-actions {
+/* ── Network pill panel ─────────────────────────────────────────────────────── */
+.evt-network-panel {
     display: flex;
+    align-items: center;
     gap: 10px;
     flex-wrap: wrap;
+    padding: 10px 14px;
+    background: var(--surface-dim);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 12px;
 }
+
+.evt-network-panel-label {
+    font-size: 0.8rem;
+    color: var(--ink-light);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.evt-network-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.evt-net-pill {
+    padding: 3px 10px;
+    border-radius: 12px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--ink-light);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.evt-net-pill.active {
+    background: var(--slate);
+    border-color: var(--slate);
+    color: #e8edf3;
+}
+
+.evt-net-pill:hover { opacity: 0.8; }
+
+/* ── Event & station detail cards ───────────────────────────────────────────── */
+.events-cards {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+.evt-card {
+    flex: 1;
+    min-width: 260px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 14px 18px;
+    box-shadow: var(--shadow-sm);
+}
+
+.evt-event-card   { border-left: 3px solid var(--sky); }
+.evt-station-card { border-left: 3px solid var(--green); }
+
+.evt-card-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--slate);
+    margin-bottom: 3px;
+}
+
+.evt-card-meta {
+    font-size: 0.8rem;
+    color: var(--ink-light);
+    font-family: var(--font-mono);
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+
+.evt-card-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.evt-card-actions .btn { padding: 7px 14px; font-size: 0.8rem; }
 
 /* Station triangle marker */
 .sta-marker {
@@ -556,32 +634,10 @@ select.form-control {
     filter: drop-shadow(0 1px 2px rgba(0,0,0,.35));
 }
 
-.sta-popup { font-size: 0.85rem; line-height: 1.5; }
-.sta-popup b { color: var(--slate); }
-.sta-popup span { color: var(--ink-light); font-size: 0.8rem; }
-.sta-channels { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
-.sta-chan-btn {
-    font-size: 0.75rem; padding: 2px 7px; border-radius: 3px; cursor: pointer;
-    background: var(--surface); border: 1px solid var(--border);
-    color: var(--ink); white-space: nowrap;
-}
-.sta-chan-btn:hover { background: var(--sky-pale); }
-.sta-chan-best { border-color: #2a9d3f; color: #2a9d3f; font-weight: 600; }
-.sta-channels-loading { font-style: italic; }
-.sta-no-data { color: #cc3333; }
+.sta-no-data { color: #cc3333; font-size: 0.8rem; }
 
-.sta-use-btn {
-    margin-top: 8px;
-    padding: 5px 12px;
-    background: var(--slate);
-    color: #e8edf3;
-    border: none;
-    border-radius: var(--radius-sm);
-    font-size: 0.8rem;
-    font-weight: 600;
-    cursor: pointer;
-}
-.sta-use-btn:hover { background: var(--slate-mid); }
+/* Channel pills inside station card reuse .evt-net-pill */
+.sta-channels { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 
 @media (max-width: 720px) {
     #eventsMap { height: 320px; }
@@ -648,3 +704,4 @@ select.form-control {
     color: var(--ink-light);
     font-style: italic;
 }
+

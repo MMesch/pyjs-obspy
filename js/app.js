@@ -28,6 +28,8 @@ async function fetchData() {
     const fdsnService = document.getElementById('fdsnService').value;
     const attachResp  = document.getElementById('attachResponse').checked;
     const removeResp  = document.getElementById('removeResponse').checked;
+    const phases      = document.getElementById('phases').value
+        .split(',').map(p => p.trim()).filter(Boolean);
 
     const output      = document.getElementById('output');
     const fetchBtn    = document.getElementById('fetchData');
@@ -69,10 +71,12 @@ async function fetchData() {
             + '"' + location + '","' + channel + '",'
             + '"' + startUTC + '","' + endUTC + '",'
             + 'attach_response=' + (attachResp ? 'True' : 'False')
+            + ',phase_list=' + JSON.stringify(phases)
             + evtKwargs + ')';
         const raw = JSON.parse(await PyEnv.asyncEval(rawCall,
             'Fetching waveforms from ' + fdsnService + '…'));
 
+        if (raw.dist_deg != null) EventsTab.setDistDeg(raw.dist_deg);
         output.textContent += 'Fetched ' + raw.num_traces + ' trace(s)';
         if (raw.stream_bytes) output.textContent += ' · ' + (raw.stream_bytes / 1048576).toFixed(2) + ' MB';
         if (raw.has_response) output.textContent += ' · response metadata attached';
