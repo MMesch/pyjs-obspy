@@ -61,7 +61,9 @@ const PyEnv = (() => {
         return { transferred, decoded, cached, mb };
     }
 
-    function _readyHTML(opElapsed) {
+    const _mb = (b) => (b / 1048576).toFixed(0) + ' MB';
+
+    function _readyHTML(opElapsed, heapTotal, heapDelta) {
         const t = _timings;
         const wasm = _wasmStats();
         const pkg  = _packageStats();
@@ -93,9 +95,18 @@ const PyEnv = (() => {
         const pyTooltip = 'First-time import of obspy, numpy, scipy and other modules.\n'
             + 'Runs on every page load regardless of caching.';
 
+        const heapTooltip = 'Total WASM linear memory currently allocated by the Python runtime.\n'
+            + 'WASM memory grows on demand and never shrinks within a session.\n'
+            + (heapDelta !== null ? _mb(heapDelta) + ' allocated by the last operation.' : '');
+
         let parts = [];
         if (opElapsed !== null)
             parts.push('last operation ' + opElapsed + ' s');
+        if (heapTotal > 0) {
+            const heapLabel = 'WASM heap ' + _mb(heapTotal)
+                + (heapDelta !== null ? ' (+' + _mb(heapDelta) + ')' : '');
+            parts.push(_tip(heapLabel, heapTooltip));
+        }
         parts.push(_tip('interpreter ' + t.wasm + ' s', wasmTooltip));
         parts.push(_tip('packages ' + t.packages + ' s, ' + pkgNote, pkgTooltip));
         parts.push(_tip('Python ' + t.pyinit + ' s', pyTooltip));
@@ -143,7 +154,8 @@ const PyEnv = (() => {
 
             _setLoadingBar(100);
             _initElapsed = ((Date.now() - _initStart) / 1000).toFixed(1);
-            _setLoadingStatusHTML(_readyHTML(null), true);
+            const heapInit = window.Module?.HEAP8?.buffer?.byteLength ?? 0;
+            _setLoadingStatusHTML(_readyHTML(null, heapInit, null), true);
             _ready = true;
             setTimeout(() => document.dispatchEvent(new Event('pyready')), 450);
 
@@ -163,11 +175,13 @@ const PyEnv = (() => {
         _setLoadingBar(100);
         _setLoadingStatus(label || 'Running Python…');
         const t0 = Date.now();
+        const heapBefore = window.Module?.HEAP8?.buffer?.byteLength ?? 0;
         try {
             return await _pyjs.async_exec_eval(code);
         } finally {
             const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
-            _setLoadingStatusHTML(_readyHTML(elapsed), true);
+            const heapAfter = window.Module?.HEAP8?.buffer?.byteLength ?? 0;
+            _setLoadingStatusHTML(_readyHTML(elapsed, heapAfter, heapAfter - heapBefore), true);
         }
     }
 

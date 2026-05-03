@@ -74,6 +74,7 @@ async function fetchData() {
             'Fetching waveforms from ' + fdsnService + '…'));
 
         output.textContent += 'Fetched ' + raw.num_traces + ' trace(s)';
+        if (raw.stream_bytes) output.textContent += ' · ' + (raw.stream_bytes / 1048576).toFixed(2) + ' MB';
         if (raw.has_response) output.textContent += ' · response metadata attached';
         output.textContent += '\n';
 

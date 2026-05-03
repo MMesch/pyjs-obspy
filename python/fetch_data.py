@@ -128,6 +128,7 @@ async def fetch_raw(fdsn_service, network, station, location, channel,
             'sampling_rate': tr.stats.sampling_rate,
             'npts':          tr.stats.npts,
         } for tr in st],
+        'stream_bytes': sum(tr.data.nbytes for tr in st),
         'raw_plot': _plot_stream(st, _arrivals) if len(st) > 0 else None,
     }
     return json.dumps(result, cls=_NumpyEncoder)
