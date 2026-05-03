@@ -26,11 +26,11 @@
         </div>
 
         <div class="tabs">
-            <button class="tab active" data-tab="beachball">Beachball</button>
+            <button class="tab active" data-tab="about">About</button>
+            <button class="tab" data-tab="beachball">Beachball</button>
             <button class="tab" data-tab="taup">TauP</button>
             <button class="tab" data-tab="events">Events &amp; Stations</button>
             <button class="tab" data-tab="data">Data Processing</button>
-            <button class="tab" data-tab="about">About</button>
         </div>
 
         <!-- Events & Stations Tab -->
@@ -243,7 +243,7 @@
         </div>
 
         <!-- Beachball Tab -->
-        <div id="beachball" class="tab-content active">
+        <div id="beachball" class="tab-content">
             <div class="status-box info">
                 <span><strong>Beachball:</strong> Plot focal mechanism beach balls from strike/dip/rake or a full moment tensor.</span>
             </div>
@@ -356,13 +356,12 @@
         </div>
 
         <!-- About Tab -->
-        <div id="about" class="tab-content">
+        <div id="about" class="tab-content active">
             <div class="about-section">
                 <h3>About This Demo</h3>
                 <p>This demo runs <a href="https://docs.obspy.org" target="_blank" rel="noopener">ObsPy</a> — a full Python seismology library — entirely in your browser. There is no server doing any computation. When the page loads, a Python interpreter compiled to WebAssembly is bootstrapped, ObsPy and its dependencies are installed into an in-browser virtual filesystem, and from that point all data processing happens locally on your machine.</p>
                 <p>Seismic waveforms are fetched on demand from public <a href="https://www.fdsn.org/webservices/" target="_blank" rel="noopener">FDSN web services</a>. Earthquake catalogue data comes from the <a href="https://earthquake.usgs.gov/fdsnws/event/1/" target="_blank" rel="noopener">USGS Earthquake Hazards Program</a>. No personal data is collected or transmitted.</p>
-                <p>This is a proof-of-concept put together by Matthias Meschede. Questions and feedback: <a href="mailto:matthias.meschede@quantstack.net">matthias.meschede@quantstack.net</a></p>
-                <p>Interested in building tools like this — interactive scientific applications running entirely in the browser? <a href="https://quantstack.net" target="_blank" rel="noopener">QuantStack</a> specialises in open-source scientific computing infrastructure and is happy to discuss collaborations.</p>
+                <p>This is a proof-of-concept put together by Matthias Meschede at <a href="https://quantstack.net" target="_blank" rel="noopener">QuantStack</a>, which specialises in open-source scientific computing infrastructure. Questions, feedback, or interest in building similar tools: <a href="mailto:info@quantstack.net">info@quantstack.net</a></p>
             </div>
 
             <div class="about-section">
@@ -377,9 +376,9 @@
 
             <div class="about-section">
                 <h3>Design Choices &amp; Trade-offs</h3>
-                <p>Many operations in this demo are routed through Python and ObsPy even where a pure JavaScript implementation would be faster or more naturally asynchronous. FDSN data fetching is a good example: a native JS <code>fetch()</code> call would be non-blocking and integrate cleanly with the browser event loop, whereas the Python path goes through a synchronous-style WebAssembly runtime that requires extra care to avoid freezing the UI. Similarly, station availability checks are already implemented in JavaScript for exactly this reason.</p>
-                <p>For data processing — filtering, instrument response removal, spectrograms, TauP ray tracing — Python and ObsPy are the right tool. The scientific ecosystem around NumPy, SciPy, and ObsPy is mature and battle-tested in a way that has no JavaScript equivalent.</p>
-                <p>The guiding principle here is to demonstrate that ObsPy can run in the browser at all, so we deliberately channel most operations through Python even when JavaScript would be the more pragmatic choice. A production tool would be more selective.</p>
+                <p>The central question this demo poses is: which parts of a seismological web application should live in Python, and which in JavaScript? For a demo, the answer is deliberately biased toward Python — the point is to show that ObsPy runs in the browser at all. A production application would be more selective.</p>
+                <p>Some operations belong in JavaScript regardless. FDSN data queries, station availability checks, and event catalogue requests are straightforward HTTP calls; native browser <code>fetch()</code> handles them efficiently, integrates naturally with the browser event loop, and requires no WebAssembly overhead. Keeping these in JavaScript also makes CORS handling more transparent.</p>
+                <p>Other operations are genuinely better in Python. TauP ray tracing, waveform processing, instrument response removal, spectrograms, and beachballs all rely on ObsPy, SciPy, and Matplotlib — a mature, battle-tested scientific stack with no serious JavaScript equivalent. For those, routing through Python is not a demo choice but the right choice.</p>
             </div>
 
             <div class="about-section">
@@ -395,13 +394,13 @@
                     <tr><td><a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a></td><td>Interactive maps — BSD 2-Clause</td></tr>
                     <tr><td><a href="https://carto.com" target="_blank" rel="noopener">CARTO</a></td><td>Basemap tiles — CC BY 3.0 · © OpenStreetMap contributors</td></tr>
                 </table>
-                <p class="about-note">The interface was developed with the assistance of AI coding tools, in combination with significant human design, iteration, and domain expertise. If you believe any part of this software infringes a copyright, please contact <a href="mailto:matthias.meschede@quantstack.net">matthias.meschede@quantstack.net</a> immediately.</p>
+                <p class="about-note">Parts of this interface were developed with the assistance of AI coding tools. All code was reviewed, directed, and extensively iterated on by human contributors with domain expertise in seismology and scientific software. The AI acted as an accelerator, not an author. If you believe any part of this software infringes a copyright, please contact <a href="mailto:info@quantstack.net">info@quantstack.net</a> immediately.</p>
             </div>
         </div>
 
         <div class="footer">
             <span>© 2025 <a href="https://quantstack.net" target="_blank" rel="noopener">QuantStack SAS</a> · MIT License</span>
-            <span>Questions: <a href="mailto:matthias.meschede@quantstack.net">matthias.meschede@quantstack.net</a></span>
+            <span>Questions: <a href="mailto:info@quantstack.net">info@quantstack.net</a></span>
         </div>
     </div>
 
