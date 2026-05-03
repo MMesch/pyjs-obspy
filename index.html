@@ -376,6 +376,13 @@
             </div>
 
             <div class="about-section">
+                <h3>Design Choices &amp; Trade-offs</h3>
+                <p>Many operations in this demo are routed through Python and ObsPy even where a pure JavaScript implementation would be faster or more naturally asynchronous. FDSN data fetching is a good example: a native JS <code>fetch()</code> call would be non-blocking and integrate cleanly with the browser event loop, whereas the Python path goes through a synchronous-style WebAssembly runtime that requires extra care to avoid freezing the UI. Similarly, station availability checks are already implemented in JavaScript for exactly this reason.</p>
+                <p>For data processing — filtering, instrument response removal, spectrograms, TauP ray tracing — Python and ObsPy are the right tool. The scientific ecosystem around NumPy, SciPy, and ObsPy is mature and battle-tested in a way that has no JavaScript equivalent.</p>
+                <p>The guiding principle here is to demonstrate that ObsPy can run in the browser at all, so we deliberately channel most operations through Python even when JavaScript would be the more pragmatic choice. A production tool would be more selective.</p>
+            </div>
+
+            <div class="about-section">
                 <h3>Acknowledgements</h3>
                 <p>This demo builds on a large stack of open-source scientific software. Key components:</p>
                 <table class="about-acks">
